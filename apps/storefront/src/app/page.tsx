@@ -1,25 +1,43 @@
-﻿import Link from "next/link";
-import { ArrowRight, BatteryCharging, CarFront, CircleGauge, Disc3, Lightbulb, MoveUpRight, PackageSearch, Settings2, ShieldCheck, Wrench } from "lucide-react";
-import { VehicleSelector } from "@/components/ui/VehicleSelector";
+import Link from "next/link";
+import Image from "next/image";
+import { ArrowRight, Bike, CarFront, ChevronRight, PackageSearch, ShieldCheck, Truck, Wrench } from "lucide-react";
+import { DemoPieceCard } from "@/components/catalog/DemoPieceCard";
 import { ProductCard } from "@/components/catalog/ProductCard";
+import { demoPieces } from "@/lib/demo-catalog";
 import { getProducts } from "@/lib/catalog";
 
-const categories = [
-  { name: "Motor", slug: "motor", icon: Wrench, detail: "Componentes e manutenção" },
-  { name: "Freios", slug: "freios", icon: Disc3, detail: "Discos, pastilhas e mais" },
-  { name: "Suspensão e direção", slug: "suspensao-e-direcao", icon: CircleGauge, detail: "Controle e estabilidade" },
-  { name: "Sistema elétrico", slug: "eletrica", icon: BatteryCharging, detail: "Energia e componentes" },
-  { name: "Iluminação", slug: "iluminacao", icon: Lightbulb, detail: "Visibilidade e sinalização" },
-  { name: "Acessórios", slug: "acessorios", icon: Settings2, detail: "Praticidade para o dia a dia" },
-];
+const journeys = [
+  { label: "Carro e SUV", href: "/explorar?tipo=carro", icon: CarFront, description: "Explore peças por tipo de veículo" },
+  { label: "Moto", href: "/explorar?tipo=moto", icon: Bike, description: "Conheça linhas de peças" },
+  { label: "Caminhão", href: "/explorar?tipo=caminhao", icon: Truck, description: "Explore a linha pesada" },
+  { label: "Tipo de peça", href: "/explorar", icon: Wrench, description: "Navegue por sistemas" },
+] as const;
 
 export default async function Home() {
   const products = await getProducts(new URLSearchParams()).catch(() => null);
+  const groups = [...new Set(demoPieces.map(piece => piece.group))].slice(0, 8);
   return <main id="main-content">
-    <section className="hero" aria-labelledby="hero-title"><div className="shell hero-grid"><div className="hero-copy"><div className="hero-kicker"><span/> SUA PRÓXIMA PEÇA COMEÇA AQUI</div><h1 id="hero-title">O seu carro em movimento.<br/><em>A escolha na direção certa.</em></h1><p>Encontre peças e acessórios por categoria ou pelo veículo. Confira os detalhes técnicos antes de seguir para o carrinho.</p><div className="hero-actions"><Link className="btn btn-primary" href="/produtos">Explorar catálogo <ArrowRight size={18} aria-hidden="true"/></Link><Link className="hero-text-link" href="#encontre-veiculo">Buscar pelo veículo <MoveUpRight size={17} aria-hidden="true"/></Link></div><div className="hero-footnote"><ShieldCheck size={18} aria-hidden="true"/><span>Compatibilidade indicada somente quando houver aplicação cadastrada.</span></div></div><div className="hero-visual" aria-hidden="true"><div className="hero-technical"><span className="technical-top">57 / AUTOPEÇAS</span><svg viewBox="0 0 440 440" fill="none"><circle cx="220" cy="220" r="172" stroke="currentColor" strokeWidth="2"/><circle cx="220" cy="220" r="139" stroke="currentColor" strokeWidth="22" strokeDasharray="12 10"/><circle cx="220" cy="220" r="94" stroke="currentColor" strokeWidth="2"/><circle cx="220" cy="220" r="60" stroke="currentColor" strokeWidth="18"/><circle cx="220" cy="220" r="18" fill="currentColor"/><path d="M220 15v35M220 390v35M15 220h35M390 220h35M75 75l26 26M339 339l26 26M365 75l-26 26M101 339l-26 26" stroke="currentColor" strokeWidth="2"/></svg><span className="technical-bottom">ENCONTRE · CONFIRA · SIGA</span></div><div className="hero-visual-label">PEÇA CERTA<br/><strong>CAMINHO CERTO</strong></div></div></div></section>
-    <section className="vehicle-band" id="encontre-veiculo" aria-labelledby="vehicle-title"><div className="shell vehicle-card"><div className="vehicle-intro"><div className="vehicle-symbol"><CarFront size={26} aria-hidden="true"/></div><div><span className="section-kicker">BUSCA POR VEÍCULO</span><h2 id="vehicle-title">Peças para o seu carro</h2><p>Escolha marca, modelo, versão e ano para ver aplicações cadastradas.</p></div></div><VehicleSelector/></div></section>
-    <section className="shell home-section" aria-labelledby="categories-title"><div className="section-head"><div><span className="section-kicker">NAVEGAÇÃO RÁPIDA</span><h2 id="categories-title">Encontre por departamento</h2></div><Link className="inline-link" href="/produtos">Todo o catálogo <ArrowRight size={17} aria-hidden="true"/></Link></div><div className="category-grid">{categories.map(({name,slug,icon:Icon,detail},index)=><Link className="category-card" href={`/produtos?categoria=${slug}`} key={slug} style={{"--card-index":index} as React.CSSProperties}><div className="category-icon"><Icon size={29} strokeWidth={1.6} aria-hidden="true"/></div><span className="category-meta">LINHA 0{index+1}</span><h3>{name}</h3><p>{detail}</p><ArrowRight className="category-arrow" size={19} aria-hidden="true"/></Link>)}</div></section>
-    <section className="showcase-section" aria-labelledby="showcase-title"><div className="shell"><div className="section-head"><div><span className="section-kicker">CATÁLOGO</span><h2 id="showcase-title">Explore as peças cadastradas</h2></div><Link className="inline-link" href="/produtos">Ver todos os produtos <ArrowRight size={17} aria-hidden="true"/></Link></div>{products === null ? <div className="home-empty"><PackageSearch size={32} aria-hidden="true"/><div><h3>Catálogo indisponível agora</h3><p>Não foi possível consultar os produtos. Tente novamente em instantes.</p></div></div> : products.items.length === 0 ? <div className="home-empty"><PackageSearch size={32} aria-hidden="true"/><div><h3>Estamos preparando o catálogo</h3><p>Os produtos aparecerão aqui assim que forem cadastrados pela loja.</p></div></div> : <div className="product-grid">{products.items.slice(0,4).map(product=><ProductCard product={product} key={product.id}/>)}</div>}</div></section>
-    <section className="shell guide-section" aria-labelledby="guide-title"><div><span className="section-kicker">COMPRE COM INFORMAÇÃO</span><h2 id="guide-title">Três passos para encontrar sua peça</h2></div><div className="guide-grid"><div><span>01</span><h3>Explore</h3><p>Busque pelo nome, marca ou código da peça.</p></div><div><span>02</span><h3>Confira</h3><p>Leia as especificações e a aplicação cadastrada para seu veículo.</p></div><div><span>03</span><h3>Escolha</h3><p>Revise disponibilidade e frete antes de seguir.</p></div></div></section>
+    <section className="store-hero" aria-labelledby="hero-title">
+      <Image className="store-hero-image" src="/hero-fleet.png" alt="Carro, motocicleta e caminhão em estúdio automotivo" fill priority sizes="100vw" />
+      <div className="store-hero-shade" aria-hidden="true" />
+      <div className="shell store-hero-content">
+        <div className="store-hero-copy">
+          <h1 id="hero-title">Sua peça começa por aqui.</h1>
+          <p>Explore por veículo ou por tipo de peça. Consulte os detalhes antes de escolher.</p>
+          <div className="store-hero-actions"><Link className="btn btn-primary" href="/explorar">Explorar peças <ArrowRight size={18} aria-hidden="true" /></Link><Link className="store-hero-secondary" href="/veiculo">Selecionar meu veículo <ChevronRight size={17} aria-hidden="true" /></Link></div>
+        </div>
+      </div>
+    </section>
+
+    <section className="shell journey-section" aria-labelledby="journey-title">
+      <div className="journey-heading"><div><span className="section-kicker">COMECE POR AQUI</span><h2 id="journey-title">Como você quer encontrar sua peça?</h2></div><p>Escolha um caminho para abrir o catálogo.</p></div>
+      <div className="journey-grid">{journeys.map(({label,href,icon:Icon,description}) => <Link className="journey-card" href={href} key={href}><span className="journey-icon"><Icon size={27} strokeWidth={1.7} aria-hidden="true" /></span><strong>{label}</strong><small>{description}</small><ArrowRight className="journey-arrow" size={19} aria-hidden="true" /></Link>)}</div>
+    </section>
+
+    <section className="store-departments" aria-labelledby="departments-title"><div className="shell"><div className="store-section-head"><div><span className="section-kicker">ENCONTRE MAIS RÁPIDO</span><h2 id="departments-title">Peças por sistema</h2></div><Link href="/explorar" className="inline-link">Ver todos os tipos <ArrowRight size={17} aria-hidden="true" /></Link></div><div className="store-group-grid">{groups.map((group,index) => <Link href={`/explorar?peca=${encodeURIComponent(group)}`} className="store-group" key={group}><span>{String(index+1).padStart(2,"0")}</span><strong>{group}</strong><ArrowRight size={18} aria-hidden="true" /></Link>)}</div></div></section>
+
+    <section className="showcase-section storefront-catalog" aria-labelledby="showcase-title"><div className="shell"><div className="store-section-head"><div><span className="section-kicker">VITRINE 57 BRASIL</span><h2 id="showcase-title">Explore o catálogo</h2></div><Link className="inline-link" href="/produtos">Produtos cadastrados <ArrowRight size={17} aria-hidden="true" /></Link></div>{products?.items.length ? <div className="product-grid">{products.items.slice(0,8).map(product => <ProductCard product={product} key={product.id} />)}</div> : process.env.NODE_ENV === "development" ? <><p className="demo-notice">Demonstração de tipos de peças. Sem preço, estoque ou compatibilidade comercial.</p><div className="demo-piece-grid">{demoPieces.slice(0,8).map((piece,index) => <DemoPieceCard piece={piece} index={index} key={piece.slug} />)}</div></> : <div className="home-empty"><PackageSearch size={30} aria-hidden="true" /><div><h3>Catálogo em preparação</h3><p>Os produtos aparecerão aqui após o cadastro pela loja.</p></div></div>}</div></section>
+
+    <section className="shell store-assurance"><ShieldCheck size={27} aria-hidden="true" /><div><strong>Escolha com informação</strong><p>Compatibilidade só é indicada quando há aplicação cadastrada. Confirme os dados técnicos antes da compra.</p></div><Link href="/veiculo">Buscar pelo veículo <ArrowRight size={17} aria-hidden="true" /></Link></section>
   </main>;
 }

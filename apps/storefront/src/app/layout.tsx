@@ -7,6 +7,12 @@ import "../styles/layout.css";
 import "../styles/home.css";
 import "../styles/catalog.css";
 import "../styles/forms.css";
+import "../styles/demo.css";
+import "../styles/explore.css";
+import "../styles/store.css";
+import "../styles/finish.css";
+import "../styles/loading.css";
+import "../styles/explore-layout.css";
 
 export const metadata: Metadata = {
   title: { default: "57 Brasil | Autopeças", template: "%s | 57 Brasil" },

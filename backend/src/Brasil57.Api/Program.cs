@@ -33,7 +33,7 @@ if (!string.IsNullOrWhiteSpace(shippingToken) && shippingOriginCep is { Length: 
 builder.Services.Configure<ForwardedHeadersOptions>(options => { options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto; options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("172.16.0.0"), 12)); });
 builder.Services.AddRateLimiter(options => { options.RejectionStatusCode = 429; options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context => RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions { PermitLimit = 120, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 })); });
 var app = builder.Build();
-if (app.Configuration.GetValue<bool>("RunMigrations")) { using var scope = app.Services.CreateScope(); await scope.ServiceProvider.GetRequiredService<StoreDbContext>().Database.MigrateAsync(); await BootstrapAdmin(scope.ServiceProvider, app.Configuration); }
+if (app.Configuration.GetValue<bool>("RunMigrations")) { using var scope = app.Services.CreateScope(); var db = scope.ServiceProvider.GetRequiredService<StoreDbContext>(); await db.Database.MigrateAsync(); await CatalogSeed.EnsureDepartmentsAsync(db); await BootstrapAdmin(scope.ServiceProvider, app.Configuration); }
 app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseAuthentication();
