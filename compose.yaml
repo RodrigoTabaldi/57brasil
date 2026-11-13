@@ -1,0 +1,57 @@
+﻿services:
+  proxy:
+    image: caddy:2-alpine
+    ports:
+      - "8088:80"
+    volumes:
+      - ./infrastructure/caddy/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - storefront
+      - api
+  storefront:
+    build: ./apps/storefront
+    environment:
+      API_INTERNAL_URL: http://api:8080
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.api
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_ENVIRONMENT: Development
+      RunMigrations: "true"
+      DataProtection__KeyPath: /keys
+      Shipping__Token: ${SHIPPING_TOKEN:-}
+      Shipping__OriginCep: ${SHIPPING_ORIGIN_CEP:-}
+      Shipping__UserAgent: ${SHIPPING_USER_AGENT:-}
+      Shipping__Environment: ${SHIPPING_ENVIRONMENT:-sandbox}
+      BootstrapAdmin__Email: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BootstrapAdmin__Password: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      ConnectionStrings__Default: Host=db;Database=brasil57;Username=brasil57;Password=${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
+    volumes:
+      - data_protection_keys:/keys
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: brasil57
+      POSTGRES_USER: brasil57
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U brasil57 -d brasil57"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+volumes:
+  postgres_data:
+  data_protection_keys:
+
+
+
+
+
+

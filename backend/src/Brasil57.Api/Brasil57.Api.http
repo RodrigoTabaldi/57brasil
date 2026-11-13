@@ -1,0 +1,6 @@
+@Brasil57.Api_HostAddress = http://localhost:5250
+
+GET {{Brasil57.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

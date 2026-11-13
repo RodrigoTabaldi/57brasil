@@ -1,0 +1,7 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../Brasil57.Domain/Brasil57.Domain.csproj" /><ProjectReference Include="../Brasil57.Application/Brasil57.Application.csproj" /><PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" /><PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" /><PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.11" /></ItemGroup>
+</Project>
+
+
+

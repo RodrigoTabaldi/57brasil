@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../Brasil57.Domain/Brasil57.Domain.csproj" /><ProjectReference Include="../Brasil57.Application/Brasil57.Application.csproj" /><ProjectReference Include="../Brasil57.Infrastructure/Brasil57.Infrastructure.csproj" /><PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.15" /></ItemGroup>
+</Project>
+
+
+
+
+
+
+
+
+
