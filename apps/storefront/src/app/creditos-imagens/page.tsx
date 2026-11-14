@@ -1,4 +1,3 @@
-import Link from "next/link";
 
 const sources = [
   ["Pastilha de freio", "Tiia Monto", "CC BY-SA 4.0", "Automobile_brake_pad.jpg"],
@@ -16,5 +15,5 @@ const sources = [
 ] as const;
 
 export default function ImageCreditsPage() {
-  return <main id="main-content" className="shell image-credits"><Link href="/">← Voltar à loja</Link><h1>Créditos das imagens</h1><p>Fotos de referência dos tipos de peças demonstrativos. As cópias locais foram redimensionadas para a vitrine e são exibidas com recorte no cartão. Nenhuma foto representa um produto à venda.</p><ul>{sources.map(([label,author,license,file])=><li key={file}><strong>{label}</strong><span>{author} · {license}</span><a href={`https://commons.wikimedia.org/wiki/File:${file}`} target="_blank" rel="noopener noreferrer">Ver fonte e licença ↗</a></li>)}</ul></main>;
+  return <main id="main-content" className="shell image-credits"><h1>Créditos das imagens</h1><p>Fotos de referência dos tipos de peças demonstrativos. As cópias locais foram redimensionadas para a vitrine e são exibidas com recorte no cartão. Nenhuma foto representa um produto à venda.</p><ul>{sources.map(([label,author,license,file])=><li key={file}><strong>{label}</strong><span>{author} · {license}</span><a href={`https://commons.wikimedia.org/wiki/File:${file}`} target="_blank" rel="noopener noreferrer">Ver fonte e licença ↗</a></li>)}</ul></main>;
 }

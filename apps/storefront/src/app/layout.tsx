@@ -1,6 +1,8 @@
 ﻿import type { Metadata } from "next";
+import "@fontsource-variable/manrope";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
+import { BackButton } from "@/components/layout/BackButton";
 import "./globals.css";
 import "../styles/base.css";
 import "../styles/layout.css";
@@ -13,6 +15,7 @@ import "../styles/store.css";
 import "../styles/finish.css";
 import "../styles/loading.css";
 import "../styles/explore-layout.css";
+import "../styles/refresh.css";
 
 export const metadata: Metadata = {
   title: { default: "57 Brasil | Autopeças", template: "%s | 57 Brasil" },
@@ -21,5 +24,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="pt-BR"><body><a className="skip-link" href="#main-content">Pular para o conteúdo</a><SiteHeader/>{children}<SiteFooter/></body></html>;
+  return <html lang="pt-BR"><body><a className="skip-link" href="#main-content">Pular para o conteúdo</a><SiteHeader/><BackButton/>{children}<SiteFooter/></body></html>;
 }
