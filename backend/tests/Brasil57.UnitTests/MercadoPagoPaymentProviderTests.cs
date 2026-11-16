@@ -33,6 +33,19 @@ public class MercadoPagoPaymentProviderTests
         await Assert.ThrowsAsync<System.Text.Json.JsonException>(() => provider.CreatePreferenceAsync(Guid.NewGuid(), "cliente@example.com", [new PaymentItem("SKU", "Peça", 1, 10m)], 0m, CancellationToken.None));
     }
     [Fact]
+    public async Task ReadsCurrencyAndAmountFromAuthenticatedPayment()
+    {
+        var client = new HttpClient(new Handler(request => {
+            Assert.Equal("/v1/payments/123", request.RequestUri!.AbsolutePath);
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"external_reference\":\"order-1\",\"transaction_amount\":15.00,\"currency_id\":\"BRL\",\"status\":\"approved\"}") });
+        }));
+        var provider = new MercadoPagoPaymentProvider(client, "test-token", "test-secret", new Uri("https://loja.example"));
+        var payment = await provider.GetPaymentAsync("123", CancellationToken.None);
+        Assert.Equal("BRL", payment.Currency);
+        Assert.Equal(15m, payment.Amount);
+        Assert.Equal("approved", payment.Status);
+    }
+    [Fact]
     public void ValidatesWebhookSignatureAndRejectsTampering()
     {
         const string manifest = "id:123;request-id:req-1;ts:123456;";

@@ -17,6 +17,9 @@ public sealed class StoreDbContext(DbContextOptions<StoreDbContext> options) : I
     public DbSet<VehicleVersion> VehicleVersions => Set<VehicleVersion>();
     public DbSet<ProductApplication> ProductApplications => Set<ProductApplication>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<PaymentNotification> PaymentNotifications => Set<PaymentNotification>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -32,6 +35,9 @@ public sealed class StoreDbContext(DbContextOptions<StoreDbContext> options) : I
         model.Entity<ProductApplication>(e => { e.HasKey(x => new { x.ProductId, x.VehicleVersionId, x.StartYear, x.EndYear }); e.Property(x => x.Restriction).HasMaxLength(500); e.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId); e.HasOne(x => x.VehicleVersion).WithMany().HasForeignKey(x => x.VehicleVersionId); e.ToTable(t => t.HasCheckConstraint("ck_application_years", "\"StartYear\" <= \"EndYear\"")); });
         model.Entity<Cart>(e => e.HasKey(x => x.Id));
         model.Entity<CartItem>(e => { e.HasKey(x => x.Id); e.HasIndex(x => new { x.CartId, x.ProductId }).IsUnique(); e.HasOne(x => x.Cart).WithMany(x => x.Items).HasForeignKey(x => x.CartId); e.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict); e.ToTable(t => t.HasCheckConstraint("ck_cart_quantity", "\"Quantity\" > 0 AND \"Quantity\" <= 99")); });
+        model.Entity<Order>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.CartId).IsUnique(); e.HasIndex(x => x.IdempotencyKey).IsUnique(); e.HasIndex(x => x.ProviderPaymentId).IsUnique(); e.Property(x => x.IdempotencyKey).HasMaxLength(100); e.Property(x => x.RequestHash).HasMaxLength(64); e.Property(x => x.BuyerEmail).HasMaxLength(254); e.Property(x => x.ProviderPaymentId).HasMaxLength(80); e.Property(x => x.Status).HasConversion<string>().HasMaxLength(32); e.Property(x => x.ItemsTotal).HasPrecision(12, 2); e.Property(x => x.ShippingTotal).HasPrecision(12, 2); e.ToTable(t => { t.HasCheckConstraint("ck_order_totals", "\"ItemsTotal\" >= 0 AND \"ShippingTotal\" >= 0"); }); });
+        model.Entity<OrderItem>(e => { e.HasKey(x => x.Id); e.HasIndex(x => new { x.OrderId, x.ProductId }).IsUnique(); e.HasOne(x => x.Order).WithMany(x => x.Items).HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Cascade); e.HasOne<Product>().WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict); e.Property(x => x.Sku).HasMaxLength(80); e.Property(x => x.Name).HasMaxLength(240); e.Property(x => x.UnitPrice).HasPrecision(12, 2); e.ToTable(t => t.HasCheckConstraint("ck_order_item", "\"Quantity\" > 0 AND \"UnitPrice\" >= 0")); });
+        model.Entity<PaymentNotification>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.RequestId).IsUnique(); e.HasIndex(x => new { x.ProcessedAt, x.NextAttemptAt }); e.Property(x => x.RequestId).HasMaxLength(100); e.Property(x => x.PaymentId).HasMaxLength(80); e.Property(x => x.Outcome).HasMaxLength(40); });
     }
 }
 

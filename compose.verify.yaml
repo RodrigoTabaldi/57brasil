@@ -1,0 +1,49 @@
+# Isolated local verification overlay. Use a distinct Compose project name.
+services:
+  db:
+    ports:
+      - "127.0.0.1:15432:5432"
+  db-replica:
+    ports:
+      - "127.0.0.1:15433:5432"
+  proxy:
+    ports: !override
+      - "${VERIFY_PORT:-18088}:80"
+  storefront:
+    image: 57brasil-storefront:latest
+    build: !reset null
+  migrate:
+    image: brasil57-api:validation
+    build: !reset null
+    environment:
+      BootstrapAdmin__Email: ""
+      BootstrapAdmin__Password: ""
+  api-1:
+    image: brasil57-api:validation
+    build: !reset null
+    environment:
+      Shipping__Token: ""
+      Payment__EnableWebhook: "false"
+      Payment__AccessToken: ""
+      Payment__WebhookSecret: ""
+  api-2:
+    image: brasil57-api:validation
+    build: !reset null
+    environment:
+      Shipping__Token: ""
+      Payment__EnableWebhook: "false"
+      Payment__AccessToken: ""
+      Payment__WebhookSecret: ""
+  worker:
+    image: brasil57-worker:validation
+    build: !reset null
+    environment:
+      Payment__EnableWebhook: "false"
+      Payment__AccessToken: ""
+      Payment__WebhookSecret: ""
+  redis:
+    ports:
+      - "127.0.0.1:16379:6379"
+  rabbitmq:
+    ports:
+      - "127.0.0.1:15673:5672"

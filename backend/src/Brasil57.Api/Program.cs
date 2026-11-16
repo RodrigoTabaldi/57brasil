@@ -7,16 +7,27 @@ using Brasil57.Api;
 using Brasil57.Infrastructure;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 var keyPath = builder.Configuration["DataProtection:KeyPath"] ?? Path.Combine(builder.Environment.ContentRootPath, ".keys");
 Directory.CreateDirectory(keyPath);
-builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(keyPath));
+builder.Services.AddDataProtection().SetApplicationName("Brasil57").PersistKeysToFileSystem(new DirectoryInfo(keyPath));
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
 builder.Services.AddDbContext<StoreDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+builder.Services.AddScoped<CatalogReadRouter>();
+var redisHost = builder.Configuration["Redis:Host"];
+if (string.IsNullOrWhiteSpace(redisHost)) builder.Services.AddDistributedMemoryCache();
+else builder.Services.AddStackExchangeRedisCache(options => {
+    var configuration = new ConfigurationOptions { Password = builder.Configuration["Redis:Password"], AbortOnConnectFail = false, ConnectTimeout = 1000, SyncTimeout = 1000 };
+    configuration.EndPoints.Add(redisHost, builder.Configuration.GetValue("Redis:Port", 6379));
+    options.ConfigurationOptions = configuration;
+});
+builder.Services.AddScoped<CatalogTaxonomyCache>();
+builder.Services.AddSingleton(new PaymentNotificationQueue(builder.Configuration["RabbitMq:Host"], builder.Configuration["RabbitMq:Password"]));
 builder.Services.AddIdentityCore<StoreUser>(options => { options.Password.RequiredLength = 12; options.Lockout.MaxFailedAccessAttempts = 5; options.User.RequireUniqueEmail = true; }).AddRoles<IdentityRole<Guid>>().AddEntityFrameworkStores<StoreDbContext>().AddSignInManager();
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdentityCookies();
 builder.Services.ConfigureApplicationCookie(options => { options.Cookie.HttpOnly = true; options.Cookie.SameSite = SameSiteMode.Strict; options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always; options.ExpireTimeSpan = TimeSpan.FromHours(8); options.SlidingExpiration = true; options.Events.OnRedirectToLogin = context => { context.Response.StatusCode = 401; return Task.CompletedTask; }; options.Events.OnRedirectToAccessDenied = context => { context.Response.StatusCode = 403; return Task.CompletedTask; }; });
@@ -30,10 +41,29 @@ if (!string.IsNullOrWhiteSpace(shippingToken) && shippingOriginCep is { Length: 
     builder.Services.AddHttpClient("shipping", client => client.Timeout = TimeSpan.FromSeconds(10));
     builder.Services.AddTransient<IShippingProvider>(sp => new MelhorEnvioShippingProvider(sp.GetRequiredService<IHttpClientFactory>().CreateClient("shipping"), shippingToken, shippingOriginCep, shippingUserAgent, shippingEnvironment == "sandbox"));
 }
+var webhookEnabled = builder.Configuration.GetValue<bool>("Payment:EnableWebhook");
+if (webhookEnabled)
+{
+    var accessToken = builder.Configuration["Payment:AccessToken"];
+    var webhookSecret = builder.Configuration["Payment:WebhookSecret"];
+    if (string.IsNullOrWhiteSpace(accessToken) || string.IsNullOrWhiteSpace(webhookSecret) ||
+        !Uri.TryCreate(builder.Configuration["Payment:SiteUrl"], UriKind.Absolute, out var siteUrl) || siteUrl.Scheme != Uri.UriSchemeHttps)
+        throw new InvalidOperationException("Configuração de webhook de pagamento incompleta.");
+    builder.Services.AddHttpClient("payment", client => client.Timeout = TimeSpan.FromSeconds(10));
+    builder.Services.AddTransient<IPaymentProvider>(sp => new MercadoPagoPaymentProvider(sp.GetRequiredService<IHttpClientFactory>().CreateClient("payment"), accessToken, webhookSecret, siteUrl));
+}
 builder.Services.Configure<ForwardedHeadersOptions>(options => { options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto; options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("172.16.0.0"), 12)); });
 builder.Services.AddRateLimiter(options => { options.RejectionStatusCode = 429; options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context => RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions { PermitLimit = 120, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 })); });
 var app = builder.Build();
-if (app.Configuration.GetValue<bool>("RunMigrations")) { using var scope = app.Services.CreateScope(); var db = scope.ServiceProvider.GetRequiredService<StoreDbContext>(); await db.Database.MigrateAsync(); await CatalogSeed.EnsureDepartmentsAsync(db); await BootstrapAdmin(scope.ServiceProvider, app.Configuration); }
+if (args.Contains("--migrate", StringComparer.Ordinal))
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<StoreDbContext>();
+    await db.Database.MigrateAsync();
+    await CatalogSeed.EnsureDepartmentsAsync(db);
+    await BootstrapAdmin(scope.ServiceProvider, app.Configuration);
+    return;
+}
 app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseAuthentication();
@@ -47,21 +77,62 @@ app.MapGet("/health/ready", async (StoreDbContext db, CancellationToken ct) => {
 });
 app.MapAdmin();
 var api = app.MapGroup("/api/v1");
+if (webhookEnabled)
+{
+    api.MapPost("/payments/mercado-pago/webhooks", async (HttpContext context, StoreDbContext db, IPaymentProvider provider, PaymentNotificationQueue queue, ILogger<Program> logger, CancellationToken ct) => {
+        if (context.Request.Query["type"] != "payment") return Results.Ok();
+        var paymentId = context.Request.Query["data.id"].ToString();
+        var requestId = context.Request.Headers["x-request-id"].ToString();
+        var signature = context.Request.Headers["x-signature"].ToString();
+        if (requestId.Length is < 1 or > 100 || paymentId.Length is < 1 or > 30 || !paymentId.All(char.IsDigit) ||
+            !provider.VerifyWebhook(signature, requestId, paymentId)) return Results.Unauthorized();
+        var now = DateTimeOffset.UtcNow;
+        var notificationId = Guid.NewGuid();
+        var inserted = await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "PaymentNotifications" ("Id", "RequestId", "PaymentId", "ReceivedAt", "NextAttemptAt", "Attempts")
+            VALUES ({notificationId}, {requestId}, {paymentId}, {now}, {now}, 0)
+            ON CONFLICT ("RequestId") DO NOTHING
+            """, ct);
+        if (inserted == 1)
+        {
+            try { await queue.PublishAsync(notificationId, ct); }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+            catch (Exception exception) { logger.LogWarning(exception, "Fila de pagamentos indisponível; inbox será processada pelo polling."); }
+        }
+        return Results.Accepted();
+    });
+}
 api.MapGet("/vehicles/makes", async (StoreDbContext db, CancellationToken ct) => await db.VehicleMakes.AsNoTracking().OrderBy(x => x.Name).Select(x => new { x.Id, x.Name }).ToListAsync(ct));
 api.MapGet("/vehicles/models", async (Guid makeId, StoreDbContext db, CancellationToken ct) => await db.VehicleModels.AsNoTracking().Where(x => x.MakeId == makeId).OrderBy(x => x.Name).Select(x => new { x.Id, x.Name }).ToListAsync(ct));
 api.MapGet("/vehicles/versions", async (Guid modelId, StoreDbContext db, CancellationToken ct) => await db.VehicleVersions.AsNoTracking().Where(x => x.ModelId == modelId).OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, x.StartYear, x.EndYear }).ToListAsync(ct));
-api.MapGet("/categories", async (StoreDbContext db, CancellationToken ct) => await db.Categories.AsNoTracking().Where(x => x.Active).OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, x.Slug, x.ParentId }).ToListAsync(ct));
-api.MapGet("/brands", async (StoreDbContext db, CancellationToken ct) => await db.Brands.AsNoTracking().OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, x.Slug }).ToListAsync(ct));
-api.MapGet("/products", async (StoreDbContext db, string? q, string? category, string? brand, Guid? vehicleVersion, int? year, int? page, CancellationToken ct) => {
+api.MapGet("/categories", async (StoreDbContext db, CatalogTaxonomyCache cache, CancellationToken ct) =>
+    await cache.GetOrLoadAsync(CatalogTaxonomyCache.CategoriesKey,
+        () => db.Categories.AsNoTracking().Where(x => x.Active).OrderBy(x => x.Name).Select(x => new CategoryOption(x.Id, x.Name, x.Slug, x.ParentId)).ToListAsync(ct), ct));
+api.MapGet("/brands", async (StoreDbContext db, CatalogTaxonomyCache cache, CancellationToken ct) =>
+    await cache.GetOrLoadAsync(CatalogTaxonomyCache.BrandsKey,
+        () => db.Brands.AsNoTracking().OrderBy(x => x.Name).Select(x => new BrandOption(x.Id, x.Name, x.Slug)).ToListAsync(ct), ct));
+api.MapGet("/products", async Task<IResult> (CatalogReadRouter reader, string? q, string? category, string? brand, Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, bool? availableOnly, int? page, CancellationToken ct) => {
+    if (!CatalogQueries.Valid(q, minPrice, maxPrice))
+        return Results.ValidationProblem(new Dictionary<string, string[]> { ["filters"] = ["Busca ou faixa de preço inválida."] });
     var currentPage = Math.Clamp(page ?? 1, 1, 10000);
-    var query = db.Products.AsNoTracking().Where(x => x.Published);
-    if (!string.IsNullOrWhiteSpace(q)) { var search = q.Trim(); query = query.Where(x => EF.Functions.ILike(x.Name, $"%{search}%") || EF.Functions.ILike(x.Sku, $"%{search}%") || (x.ManufacturerCode != null && EF.Functions.ILike(x.ManufacturerCode, $"%{search}%")) || EF.Functions.ILike(x.Brand.Name, $"%{search}%") || EF.Functions.ILike(x.Category.Name, $"%{search}%")); }
-    if (!string.IsNullOrWhiteSpace(category)) query = query.Where(x => x.Category.Slug == category);
-    if (!string.IsNullOrWhiteSpace(brand)) query = query.Where(x => x.Brand.Slug == brand);
-    if (vehicleVersion is not null) query = query.Where(x => db.ProductApplications.Any(a => a.ProductId == x.Id && a.VehicleVersionId == vehicleVersion && (year == null || (a.StartYear <= year && a.EndYear >= year))));
-    var total = await query.CountAsync(ct);
-    var items = await query.OrderBy(x => x.Name).ThenBy(x => x.Id).Skip((currentPage - 1) * 24).Take(24).Select(x => new { x.Id, x.Name, x.Slug, x.Sku, x.Price, Brand = x.Brand.Name, Category = x.Category.Name, Available = x.Inventory.OnHand - x.Inventory.Reserved }).ToListAsync(ct);
-    return Results.Ok(new { items, total, page = currentPage, pageSize = 24 });
+    return await reader.ReadAsync<IResult>(async db => {
+        var query = CatalogQueries.Filter(db, q, category, brand, vehicleVersion, year, minPrice, maxPrice, availableOnly);
+        var total = await query.CountAsync(ct);
+        var items = await query.OrderBy(x => x.Name).ThenBy(x => x.Id).Skip((currentPage - 1) * 24).Take(24).Select(x => new { x.Id, x.Name, x.Slug, x.Sku, x.Price, Brand = x.Brand.Name, Category = x.Category.Name, Available = x.Inventory.OnHand - x.Inventory.Reserved }).ToListAsync(ct);
+        return Results.Ok(new { items, total, page = currentPage, pageSize = 24 });
+    }, ct);
+});
+api.MapGet("/products/facets", async Task<IResult> (CatalogReadRouter reader, string? q, string? category, string? brand, Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, bool? availableOnly, CancellationToken ct) => {
+    if (!CatalogQueries.Valid(q, minPrice, maxPrice))
+        return Results.ValidationProblem(new Dictionary<string, string[]> { ["filters"] = ["Busca ou faixa de preço inválida."] });
+    return await reader.ReadAsync<IResult>(async db => {
+        var query = CatalogQueries.Filter(db, q, category, brand, vehicleVersion, year, minPrice, maxPrice, availableOnly);
+        var categories = await query.GroupBy(x => new { x.Category.Slug, x.Category.Name })
+            .Select(x => new { x.Key.Slug, x.Key.Name, Count = x.Count() }).OrderByDescending(x => x.Count).Take(50).ToListAsync(ct);
+        var brands = await query.GroupBy(x => new { x.Brand.Slug, x.Brand.Name })
+            .Select(x => new { x.Key.Slug, x.Key.Name, Count = x.Count() }).OrderByDescending(x => x.Count).Take(50).ToListAsync(ct);
+        return Results.Ok(new { categories, brands });
+    }, ct);
 });
 api.MapGet("/products/{slug}", async (string slug, StoreDbContext db, CancellationToken ct) => {
     var product = await db.Products.AsNoTracking().Where(x => x.Published && x.Slug == slug).Select(x => new { x.Id, x.Name, x.Slug, x.Sku, x.ManufacturerCode, x.ShortDescription, x.Description, x.Price, Brand = x.Brand.Name, Category = x.Category.Name, Available = x.Inventory.OnHand - x.Inventory.Reserved }).FirstOrDefaultAsync(ct);
@@ -72,7 +143,7 @@ api.MapGet("/products/{slug}/applications", async (string slug, StoreDbContext d
     var origin = context.Request.Headers.Origin.ToString();
     return Uri.TryCreate(origin, UriKind.Absolute, out var uri) &&
         string.Equals(uri.Host, context.Request.Host.Host, StringComparison.OrdinalIgnoreCase) &&
-        string.Equals(uri.Scheme, context.Request.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? context.Request.Scheme, StringComparison.OrdinalIgnoreCase) && uri.Port == (context.Request.Host.Port ?? (uri.Scheme == "https" ? 443 : 80));
+        string.Equals(uri.Scheme, context.Request.Scheme, StringComparison.OrdinalIgnoreCase) && uri.Port == (context.Request.Host.Port ?? (uri.Scheme == "https" ? 443 : 80));
 }
 static Guid? CartId(HttpContext context) => Guid.TryParse(context.Request.Cookies["cart"], out var id) ? id : null;
 api.MapPost("/checkout/quote", async (HttpContext context, ShippingQuoteRequest input, StoreDbContext db, IServiceProvider services, CancellationToken ct) => {

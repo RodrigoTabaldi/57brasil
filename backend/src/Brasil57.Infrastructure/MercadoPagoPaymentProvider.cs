@@ -44,7 +44,7 @@ public sealed class MercadoPagoPaymentProvider(HttpClient client, string accessT
         var amount = root.GetProperty("transaction_amount");
         var amountText = amount.ValueKind == JsonValueKind.String ? amount.GetString() : amount.GetRawText();
         if (!decimal.TryParse(amountText, NumberStyles.Number, CultureInfo.InvariantCulture, out var value)) throw new JsonException("Valor de pagamento inválido.");
-        return new PaymentResult(paymentId, root.GetProperty("external_reference").GetString() ?? "", value, root.GetProperty("status").GetString() ?? "");
+        return new PaymentResult(paymentId, root.GetProperty("external_reference").GetString() ?? "", value, root.GetProperty("currency_id").GetString() ?? "", root.GetProperty("status").GetString() ?? "");
     }
     public bool VerifyWebhook(string signature, string requestId, string paymentId)
     {

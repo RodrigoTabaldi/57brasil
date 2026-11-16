@@ -16,6 +16,7 @@ import "../styles/finish.css";
 import "../styles/loading.css";
 import "../styles/explore-layout.css";
 import "../styles/refresh.css";
+import "../styles/product-showcase.css";
 
 export const metadata: Metadata = {
   title: { default: "57 Brasil | Autopeças", template: "%s | 57 Brasil" },

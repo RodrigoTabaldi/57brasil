@@ -1,0 +1,170 @@
+services:
+  migrate:
+    profiles: ["migration"]
+    build: &api-build
+      context: ./backend
+      dockerfile: Dockerfile.api
+    entrypoint: ["dotnet", "Brasil57.Api.dll", "--migrate"]
+    environment:
+      ConnectionStrings__Default: &database-url Host=db;Database=brasil57;Username=brasil57;Password=${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD};Maximum Pool Size=20
+      BootstrapAdmin__Email: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BootstrapAdmin__Password: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+  proxy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?Defina SITE_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?Defina ACME_EMAIL}
+    volumes:
+      - ./infrastructure/caddy/Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - storefront
+      - api-1
+      - api-2
+    restart: unless-stopped
+  storefront:
+    build: ./apps/storefront
+    environment:
+      API_INTERNAL_URL: http://proxy
+    depends_on:
+      - api-1
+      - api-2
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 1.0
+  api-1: &api
+    build: *api-build
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_ENVIRONMENT: Production
+      DataProtection__KeyPath: /keys
+      ConnectionStrings__Default: *database-url
+      ConnectionStrings__CatalogReplica: Host=db-replica;Database=brasil57;Username=brasil57;Password=${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD};Maximum Pool Size=10;Timeout=2
+      Redis__Host: redis
+      Redis__Password: ${REDIS_PASSWORD:?Defina REDIS_PASSWORD}
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Password: ${RABBITMQ_PASSWORD:?Defina RABBITMQ_PASSWORD}
+      Shipping__Token: ${SHIPPING_TOKEN:-}
+      Shipping__OriginCep: ${SHIPPING_ORIGIN_CEP:-}
+      Shipping__UserAgent: ${SHIPPING_USER_AGENT:-}
+      Shipping__Environment: ${SHIPPING_ENVIRONMENT:-production}
+      Payment__EnableWebhook: ${PAYMENT_WEBHOOK_ENABLED:-false}
+      Payment__AccessToken: ${MERCADO_PAGO_ACCESS_TOKEN:-}
+      Payment__WebhookSecret: ${MERCADO_PAGO_WEBHOOK_SECRET:-}
+      Payment__SiteUrl: ${PUBLIC_SITE_URL:-}
+    volumes:
+      - data_protection_keys:/keys
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 1.0
+    stop_grace_period: 30s
+  api-2:
+    <<: *api
+    build: *api-build
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    environment:
+      ConnectionStrings__Default: Host=db;Database=brasil57;Username=brasil57;Password=${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD};Maximum Pool Size=5
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Password: ${RABBITMQ_PASSWORD:?Defina RABBITMQ_PASSWORD}
+      Payment__EnableWebhook: ${PAYMENT_WEBHOOK_ENABLED:-false}
+      Payment__AccessToken: ${MERCADO_PAGO_ACCESS_TOKEN:-}
+      Payment__WebhookSecret: ${MERCADO_PAGO_WEBHOOK_SECRET:-}
+      Payment__SiteUrl: ${PUBLIC_SITE_URL:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
+    stop_grace_period: 30s
+  db:
+    image: postgres:17-alpine
+    command: ["postgres", "-c", "wal_level=replica", "-c", "max_wal_senders=5"]
+    environment:
+      POSTGRES_DB: brasil57
+      POSTGRES_USER: brasil57
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD}
+      POSTGRES_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD:?Defina POSTGRES_REPLICATION_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/01-replication.sh:/docker-entrypoint-initdb.d/01-replication.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U brasil57 -d brasil57"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    mem_limit: 2g
+    cpus: 2.0
+  db-replica:
+    image: postgres:17-alpine
+    user: postgres
+    entrypoint: ["/bin/sh", "/replica.sh"]
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      PGPASSWORD: ${POSTGRES_REPLICATION_PASSWORD:?Defina POSTGRES_REPLICATION_PASSWORD}
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/replica.sh:/replica.sh:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U replicator -d postgres && psql -h localhost -U replicator -d postgres -tAc 'SELECT pg_is_in_recovery()' | grep -q t"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    mem_limit: 2g
+    cpus: 2.0
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?Defina REDIS_PASSWORD}", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?Defina REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: brasil57
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Defina RABBITMQ_PASSWORD}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "su-exec", "rabbitmq", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 20s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.5
+volumes:
+  postgres_data:
+  postgres_replica_data:
+  data_protection_keys:
+  caddy_data:
+  caddy_config:
+  rabbitmq_data:

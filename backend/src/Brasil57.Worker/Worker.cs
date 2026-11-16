@@ -1,16 +1,63 @@
+using Brasil57.Application;
+using Brasil57.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+
 namespace Brasil57.Worker;
 
-public class Worker(ILogger<Worker> logger) : BackgroundService
+public sealed class Worker(IServiceScopeFactory scopes, PaymentNotificationQueue queue, ILogger<Worker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
         while (!stoppingToken.IsCancellationRequested)
         {
-            if (logger.IsEnabled(LogLevel.Information))
+            try { if (queue.Enabled) await queue.ProcessNextAsync((id, ct) => ProcessBatchAsync(ct, id), stoppingToken); }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
+            catch (Exception exception) { logger.LogWarning(exception, "Fila indisponível; processando inbox pelo PostgreSQL."); }
+            try { await ProcessBatchAsync(stoppingToken); }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
+            catch (Exception exception) { logger.LogError(exception, "Falha ao consultar notificações de pagamento."); }
+            if (!await timer.WaitForNextTickAsync(stoppingToken)) break;
+        }
+    }
+
+    private async Task ProcessBatchAsync(CancellationToken ct, Guid? notificationId = null)
+    {
+        using var scope = scopes.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<StoreDbContext>();
+        var provider = scope.ServiceProvider.GetRequiredService<IPaymentProvider>();
+        var now = DateTimeOffset.UtcNow;
+        var due = await db.PaymentNotifications.AsNoTracking()
+            .Where(x => x.ProcessedAt == null && x.NextAttemptAt <= now && (x.LeaseUntil == null || x.LeaseUntil < now) && (notificationId == null || x.Id == notificationId))
+            .OrderBy(x => x.ReceivedAt).Take(10).Select(x => new { x.Id, x.PaymentId, x.Attempts }).ToListAsync(ct);
+        foreach (var notification in due)
+        {
+            now = DateTimeOffset.UtcNow;
+            var claimed = await db.PaymentNotifications.Where(x => x.Id == notification.Id && x.ProcessedAt == null && (x.LeaseUntil == null || x.LeaseUntil < now))
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.LeaseUntil, now.AddMinutes(1)), ct);
+            if (claimed != 1) continue;
+            try
             {
-                logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
+                var payment = await provider.GetPaymentAsync(notification.PaymentId, ct);
+                var outcome = await new OrderReservationService(db).ConfirmPaymentAsync(payment, ct);
+                await db.PaymentNotifications.Where(x => x.Id == notification.Id)
+                    .ExecuteUpdateAsync(s => s.SetProperty(x => x.ProcessedAt, DateTimeOffset.UtcNow)
+                        .SetProperty(x => x.LeaseUntil, (DateTimeOffset?)null)
+                        .SetProperty(x => x.Outcome, outcome.ToString())
+                        .SetProperty(x => x.Attempts, x => x.Attempts + 1), ct);
+                if (outcome is ConfirmPaymentOutcome.Mismatch or ConfirmPaymentOutcome.ConflictingPayment)
+                    logger.LogError("Pagamento {PaymentId} exige revisão: {Outcome}", notification.PaymentId, outcome);
             }
-            await Task.Delay(1000, stoppingToken);
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+            catch (Exception exception)
+            {
+                var delay = TimeSpan.FromSeconds(Math.Min(300, 1 << Math.Min(notification.Attempts + 1, 8)));
+                await db.PaymentNotifications.Where(x => x.Id == notification.Id)
+                    .ExecuteUpdateAsync(s => s.SetProperty(x => x.LeaseUntil, (DateTimeOffset?)null)
+                        .SetProperty(x => x.NextAttemptAt, DateTimeOffset.UtcNow.Add(delay))
+                        .SetProperty(x => x.Attempts, x => x.Attempts + 1), ct);
+                logger.LogWarning(exception, "Falha ao processar pagamento {PaymentId}; nova tentativa agendada.", notification.PaymentId);
+            }
         }
     }
 }
