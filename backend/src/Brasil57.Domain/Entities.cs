@@ -48,6 +48,7 @@ public sealed class InventoryItem
 public sealed class Cart
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid? UserId { get; set; }
     public DateTimeOffset ExpiresAt { get; set; } = DateTimeOffset.UtcNow.AddDays(30);
     public List<CartItem> Items { get; set; } = [];
 }
@@ -59,6 +60,15 @@ public sealed class CartItem
     public Guid ProductId { get; set; }
     public Product Product { get; set; } = null!;
     public int Quantity { get; set; }
+}
+public sealed class CartOperation
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
+    public required string Key { get; set; }
+    public Guid ProductId { get; set; }
+    public int Quantity { get; set; }
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
 

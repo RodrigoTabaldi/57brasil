@@ -87,7 +87,13 @@ namespace Brasil57.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
 
                     b.ToTable("Carts");
                 });
@@ -118,6 +124,39 @@ namespace Brasil57.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("ck_cart_quantity", "\"Quantity\" > 0 AND \"Quantity\" <= 99");
                         });
+                });
+
+            modelBuilder.Entity("Brasil57.Domain.CartOperation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("UserId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("CartOperations");
                 });
 
             modelBuilder.Entity("Brasil57.Domain.Category", b =>
@@ -514,12 +553,21 @@ namespace Brasil57.Infrastructure.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("text");
 
+                    b.Property<string>("Cpf")
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean");
@@ -556,7 +604,11 @@ namespace Brasil57.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Cpf")
+                        .IsUnique();
+
                     b.HasIndex("NormalizedEmail")
+                        .IsUnique()
                         .HasDatabaseName("EmailIndex");
 
                     b.HasIndex("NormalizedUserName")
@@ -696,6 +748,14 @@ namespace Brasil57.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Brasil57.Domain.Cart", b =>
+                {
+                    b.HasOne("Brasil57.Infrastructure.StoreUser", null)
+                        .WithOne()
+                        .HasForeignKey("Brasil57.Domain.Cart", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
             modelBuilder.Entity("Brasil57.Domain.CartItem", b =>
                 {
                     b.HasOne("Brasil57.Domain.Cart", "Cart")
@@ -713,6 +773,15 @@ namespace Brasil57.Infrastructure.Migrations
                     b.Navigation("Cart");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Brasil57.Domain.CartOperation", b =>
+                {
+                    b.HasOne("Brasil57.Infrastructure.StoreUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Brasil57.Domain.Category", b =>

@@ -1,0 +1,4 @@
+"use client";
+import { useEffect, useState } from "react";
+import { AuthModal, currentUser } from "@/components/ui/AuthModal";
+export function AccountMenu(){const [user,setUser]=useState<{fullName:string}|null>(null);const [open,setOpen]=useState(false);useEffect(()=>{void currentUser().then(setUser).catch(()=>{})},[]);async function logout(){const r=await fetch("/api/v1/account/logout",{method:"POST"});if(r.ok){setUser(null);window.dispatchEvent(new Event("cart-updated"))}}return <>{user?<><a href="/conta" className="header-action">{user.fullName}</a><button type="button" onClick={logout}>Sair</button></>:<button type="button" className="header-action" onClick={()=>setOpen(true)}>Entrar</button>}{open&&<AuthModal onClose={()=>setOpen(false)} onSuccess={async()=>{setUser(await currentUser());setOpen(false)}}/>}</>}

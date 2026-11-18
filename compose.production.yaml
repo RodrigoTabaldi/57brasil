@@ -28,10 +28,11 @@ services:
       - caddy_config:/config
     depends_on:
       - storefront
+      - storefront-2
       - api-1
       - api-2
     restart: unless-stopped
-  storefront:
+  storefront: &storefront
     build: ./apps/storefront
     environment:
       API_INTERNAL_URL: http://proxy
@@ -41,6 +42,14 @@ services:
     restart: unless-stopped
     mem_limit: 512m
     cpus: 1.0
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/robots.txt').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+  storefront-2:
+    <<: *storefront
   api-1: &api
     build: *api-build
     environment:
@@ -61,6 +70,12 @@ services:
       Payment__AccessToken: ${MERCADO_PAGO_ACCESS_TOKEN:-}
       Payment__WebhookSecret: ${MERCADO_PAGO_WEBHOOK_SECRET:-}
       Payment__SiteUrl: ${PUBLIC_SITE_URL:-}
+      Storefront__Url: ${PUBLIC_SITE_URL:-}
+      Smtp__Host: ${SMTP_HOST:-}
+      Smtp__Port: ${SMTP_PORT:-587}
+      Smtp__From: ${SMTP_FROM:-}
+      Smtp__User: ${SMTP_USER:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
     volumes:
       - data_protection_keys:/keys
     depends_on:

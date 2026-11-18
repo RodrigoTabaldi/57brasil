@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import "@fontsource-variable/manrope";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
@@ -9,6 +9,7 @@ import "../styles/layout.css";
 import "../styles/home.css";
 import "../styles/catalog.css";
 import "../styles/forms.css";
+import "../styles/auth.css";
 import "../styles/demo.css";
 import "../styles/explore.css";
 import "../styles/store.css";

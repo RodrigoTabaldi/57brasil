@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.HttpOverrides;
 using System.Net;
 using Microsoft.AspNetCore.DataProtection;
 using Brasil57.Domain;
@@ -32,6 +32,7 @@ builder.Services.AddIdentityCore<StoreUser>(options => { options.Password.Requir
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdentityCookies();
 builder.Services.ConfigureApplicationCookie(options => { options.Cookie.HttpOnly = true; options.Cookie.SameSite = SameSiteMode.Strict; options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always; options.ExpireTimeSpan = TimeSpan.FromHours(8); options.SlidingExpiration = true; options.Events.OnRedirectToLogin = context => { context.Response.StatusCode = 401; return Task.CompletedTask; }; options.Events.OnRedirectToAccessDenied = context => { context.Response.StatusCode = 403; return Task.CompletedTask; }; });
 builder.Services.AddAuthorization();
+builder.Services.Configure<SecurityStampValidatorOptions>(o => o.ValidationInterval = TimeSpan.Zero);
 var shippingToken = builder.Configuration["Shipping:Token"];
 var shippingOriginCep = builder.Configuration["Shipping:OriginCep"];
 var shippingUserAgent = builder.Configuration["Shipping:UserAgent"];
@@ -54,6 +55,7 @@ if (webhookEnabled)
 }
 builder.Services.Configure<ForwardedHeadersOptions>(options => { options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto; options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("172.16.0.0"), 12)); });
 builder.Services.AddRateLimiter(options => { options.RejectionStatusCode = 429; options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context => RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions { PermitLimit = 120, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 })); });
+builder.Services.AddRateLimiter(options => options.AddPolicy("account", context => RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 })));
 var app = builder.Build();
 if (args.Contains("--migrate", StringComparer.Ordinal))
 {
@@ -76,6 +78,7 @@ app.MapGet("/health/ready", async (StoreDbContext db, CancellationToken ct) => {
     catch (Exception) when (!ct.IsCancellationRequested) { return Results.StatusCode(503); }
 });
 app.MapAdmin();
+app.MapCustomers(app.Configuration);
 var api = app.MapGroup("/api/v1");
 if (webhookEnabled)
 {
@@ -145,13 +148,14 @@ api.MapGet("/products/{slug}/applications", async (string slug, StoreDbContext d
         string.Equals(uri.Host, context.Request.Host.Host, StringComparison.OrdinalIgnoreCase) &&
         string.Equals(uri.Scheme, context.Request.Scheme, StringComparison.OrdinalIgnoreCase) && uri.Port == (context.Request.Host.Port ?? (uri.Scheme == "https" ? 443 : 80));
 }
-static Guid? CartId(HttpContext context) => Guid.TryParse(context.Request.Cookies["cart"], out var id) ? id : null;
+static Guid? CustomerId(HttpContext context) => Guid.TryParse(context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var id) ? id : null;
 api.MapPost("/checkout/quote", async (HttpContext context, ShippingQuoteRequest input, StoreDbContext db, IServiceProvider services, CancellationToken ct) => {
     if (!SameOrigin(context)) return Results.StatusCode(403);
     if (input.Cep is not { Length: 8 } || !input.Cep.All(char.IsDigit)) return Results.ValidationProblem(new Dictionary<string,string[]> { ["cep"] = ["Informe um CEP com oito dígitos."] });
     var provider = services.GetService<IShippingProvider>();
     if (provider is null) return Results.Problem("Frete não configurado.", statusCode: 503);
-    var cartId = CartId(context);
+    var userId = CustomerId(context);
+    var cartId = await db.Carts.Where(x => x.UserId == userId).Select(x => (Guid?)x.Id).FirstOrDefaultAsync(ct);
     if (cartId is null) return Results.BadRequest(new { message = "Carrinho vazio." });
     var cart = await db.Carts.AsNoTracking().Include(x => x.Items).ThenInclude(x => x.Product).ThenInclude(x => x.Inventory).FirstOrDefaultAsync(x => x.Id == cartId && x.ExpiresAt > DateTimeOffset.UtcNow, ct);
     if (cart is null || cart.Items.Count == 0) return Results.BadRequest(new { message = "Carrinho vazio." });
@@ -161,41 +165,56 @@ api.MapPost("/checkout/quote", async (HttpContext context, ShippingQuoteRequest 
     catch (HttpRequestException) { return Results.Problem("Serviço de frete indisponível. Tente novamente.", statusCode: 503); }
     catch (TaskCanceledException) when (!ct.IsCancellationRequested) { return Results.Problem("Tempo de cotação excedido. Tente novamente.", statusCode: 503); }
     catch (System.Text.Json.JsonException) { return Results.Problem("Resposta de frete inválida.", statusCode: 502); }
-});api.MapGet("/cart", async (HttpContext context, StoreDbContext db, CancellationToken ct) => {
-    var id = CartId(context);
+}).RequireAuthorization();
+api.MapGet("/cart", async (HttpContext context, StoreDbContext db, CancellationToken ct) => {
+    var userId = CustomerId(context);
+    var id = await db.Carts.Where(x => x.UserId == userId).Select(x => (Guid?)x.Id).FirstOrDefaultAsync(ct);
     if (id is null) return Results.Ok(new { items = Array.Empty<object>(), subtotal = 0m });
     var cart = await db.Carts.AsNoTracking().Where(x => x.Id == id && x.ExpiresAt > DateTimeOffset.UtcNow).Select(x => new { Items = x.Items.Select(i => new { i.Id, i.ProductId, i.Product.Name, i.Product.Slug, i.Quantity, i.Product.Price, Available = i.Product.Inventory.OnHand - i.Product.Inventory.Reserved }).ToList() }).FirstOrDefaultAsync(ct);
     if (cart is null) return Results.Ok(new { items = Array.Empty<object>(), subtotal = 0m });
     return Results.Ok(new { cart.Items, subtotal = cart.Items.Sum(x => x.Price * x.Quantity) });
-});
+}).RequireAuthorization();
 api.MapPost("/cart/items", async (HttpContext context, AddCartItem input, StoreDbContext db, CancellationToken ct) => {
     if (!SameOrigin(context)) return Results.StatusCode(403);
     if (input.Quantity is < 1 or > 99) return Results.ValidationProblem(new Dictionary<string,string[]> { ["quantity"] = ["Informe uma quantidade entre 1 e 99."] });
+    var userId = CustomerId(context);
+    if (userId is null) return Results.Unauthorized();
+    var key = context.Request.Headers["Idempotency-Key"].ToString();
+    if (key.Length is < 16 or > 100 || !key.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_'))
+        return Results.ValidationProblem(new Dictionary<string,string[]> { ["Idempotency-Key"] = ["Informe uma chave de operação válida."] });
+    await using var transaction = await db.Database.BeginTransactionAsync(ct);
+    await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtext({userId.Value.ToString()}))", ct);
+    var prior = await db.CartOperations.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId && x.Key == key, ct);
+    if (prior is not null)
+        return prior.ProductId == input.ProductId && prior.Quantity == input.Quantity ? Results.NoContent() : Results.Conflict(new { message = "Chave já usada para outra operação." });
     var product = await db.Products.Include(x => x.Inventory).FirstOrDefaultAsync(x => x.Id == input.ProductId && x.Published, ct);
     if (product is null) return Results.NotFound();
-    var id = CartId(context);
-    var cart = id is null ? null : await db.Carts.FirstOrDefaultAsync(x => x.Id == id && x.ExpiresAt > DateTimeOffset.UtcNow, ct);
-    if (cart is null) { cart = new Cart(); db.Carts.Add(cart); }
+    var id = await db.Carts.Where(x => x.UserId == userId).Select(x => (Guid?)x.Id).FirstOrDefaultAsync(ct);
+    var cart = id is null ? null : await db.Carts.FirstOrDefaultAsync(x => x.Id == id, ct);
+    if (cart is null) { cart = new Cart { UserId = userId, ExpiresAt = DateTimeOffset.UtcNow.AddYears(10) }; db.Carts.Add(cart); }
     var item = await db.CartItems.FirstOrDefaultAsync(x => x.CartId == cart.Id && x.ProductId == input.ProductId, ct);
     var quantity = (item?.Quantity ?? 0) + input.Quantity;
     if (!CartQuantityPolicy.CanAdd(item?.Quantity ?? 0, input.Quantity, product.Inventory.Available)) return Results.Conflict(new { message = "Quantidade indisponível." });
     if (item is null) db.CartItems.Add(new CartItem { CartId = cart.Id, ProductId = input.ProductId, Quantity = quantity }); else item.Quantity = quantity;
+    db.CartOperations.Add(new CartOperation { UserId = userId.Value, Key = key, ProductId = input.ProductId, Quantity = input.Quantity });
     await db.SaveChangesAsync(ct);
-    context.Response.Cookies.Append("cart", cart.Id.ToString(), new CookieOptions { HttpOnly = true, Secure = !app.Environment.IsDevelopment(), SameSite = SameSiteMode.Strict, Expires = cart.ExpiresAt, Path = "/" });
+    await transaction.CommitAsync(ct);
     return Results.NoContent();
-});
+}).RequireAuthorization();
 api.MapDelete("/cart/items/{itemId:guid}", async (Guid itemId, HttpContext context, StoreDbContext db, CancellationToken ct) => {
     if (!SameOrigin(context)) return Results.StatusCode(403);
-    var id = CartId(context);
+    var userId = CustomerId(context);
+    var id = await db.Carts.Where(x => x.UserId == userId).Select(x => (Guid?)x.Id).FirstOrDefaultAsync(ct);
     if (id is null) return Results.NotFound();
     var item = await db.CartItems.FirstOrDefaultAsync(x => x.Id == itemId && x.CartId == id, ct);
     if (item is null) return Results.NotFound();
     db.CartItems.Remove(item); await db.SaveChangesAsync(ct); return Results.NoContent();
-});
+}).RequireAuthorization();
 api.MapPatch("/cart/items/{itemId:guid}", async (Guid itemId, HttpContext context, UpdateCartItem input, StoreDbContext db, CancellationToken ct) => {
     if (!SameOrigin(context)) return Results.StatusCode(403);
     if (input.Quantity is < 1 or > 99) return Results.ValidationProblem(new Dictionary<string,string[]> { ["quantity"] = ["Informe uma quantidade entre 1 e 99."] });
-    var id = CartId(context);
+    var userId = CustomerId(context);
+    var id = await db.Carts.Where(x => x.UserId == userId).Select(x => (Guid?)x.Id).FirstOrDefaultAsync(ct);
     if (id is null) return Results.NotFound();
     var item = await db.CartItems.Include(x => x.Product).ThenInclude(x => x.Inventory).FirstOrDefaultAsync(x => x.Id == itemId && x.CartId == id, ct);
     if (item is null) return Results.NotFound();
@@ -203,7 +222,7 @@ api.MapPatch("/cart/items/{itemId:guid}", async (Guid itemId, HttpContext contex
     item.Quantity = input.Quantity;
     await db.SaveChangesAsync(ct);
     return Results.NoContent();
-});static async Task BootstrapAdmin(IServiceProvider services, IConfiguration configuration)
+}).RequireAuthorization();static async Task BootstrapAdmin(IServiceProvider services, IConfiguration configuration)
 {
     var email = configuration["BootstrapAdmin:Email"]; var password = configuration["BootstrapAdmin:Password"];
     if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password)) return;
@@ -218,21 +237,3 @@ public sealed record AddCartItem(Guid ProductId, int Quantity);
 public sealed record UpdateCartItem(int Quantity);
 public sealed record ShippingQuoteRequest(string Cep);
 public partial class Program;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

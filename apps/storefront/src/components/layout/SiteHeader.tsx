@@ -1,6 +1,7 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import Image from "next/image";
 import { CarFront, ShoppingBag } from "lucide-react";
+import { AccountMenu } from "@/components/layout/AccountMenu";
 import { SearchBox } from "@/components/ui/SearchBox";
 import { DepartmentMenu } from "@/components/layout/DepartmentMenu";
 import { demoPieces } from "@/lib/demo-catalog";
@@ -21,7 +22,7 @@ export async function SiteHeader() {
       <div className="shell header-main">
         <Link className="brand" href="/" aria-label="57 Brasil, página inicial"><Image src="/logo-57brasil-4k.png" alt="57 Brasil" width={3840} height={1312} priority className="brand-logo" /></Link>
         <SearchBox demoMode={demoGroups.length > 0} />
-        <div className="header-actions"><Link href="/veiculo" className="header-action"><CarFront size={22} aria-hidden="true"/><span>Meu veículo</span></Link><Link href="/carrinho" className="header-action"><ShoppingBag size={22} aria-hidden="true"/><span>Carrinho</span></Link></div>
+        <div className="header-actions"><AccountMenu/><Link href="/veiculo" className="header-action"><CarFront size={22} aria-hidden="true"/><span>Meu veículo</span></Link><Link href="/carrinho" className="header-action"><ShoppingBag size={22} aria-hidden="true"/><span>Carrinho</span></Link></div>
       </div>
       <div className="header-nav"><nav className="shell nav-links" aria-label="Catálogo"><Link href="/#catalogo">Catálogo e filtros</Link><Link href="/veiculo">Buscar por veículo</Link><Link href="/produtos">Produtos cadastrados</Link>{departments.length > 0 && <DepartmentMenu departments={departments} demoGroups={[]} />}</nav></div>
     </header>
