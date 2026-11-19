@@ -11,6 +11,7 @@ using StackExchange.Redis;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 64 * 1024);
 var keyPath = builder.Configuration["DataProtection:KeyPath"] ?? Path.Combine(builder.Environment.ContentRootPath, ".keys");
 Directory.CreateDirectory(keyPath);
 builder.Services.AddDataProtection().SetApplicationName("Brasil57").PersistKeysToFileSystem(new DirectoryInfo(keyPath));
@@ -27,8 +28,18 @@ else builder.Services.AddStackExchangeRedisCache(options => {
     options.ConfigurationOptions = configuration;
 });
 builder.Services.AddScoped<CatalogTaxonomyCache>();
+// Future gateway selection is explicit; neither adapter can charge until implemented.
+switch (builder.Configuration["Payment:Gateway"]?.ToLowerInvariant())
+{
+    case "stripe": builder.Services.AddScoped<IPaymentGateway, StripePaymentGateway>(); break;
+    case "abacatepay": builder.Services.AddScoped<IPaymentGateway, AbacatePayPaymentGateway>(); break;
+    case null or "": break;
+    default: throw new InvalidOperationException("Gateway de pagamento desconhecido.");
+}
+builder.Services.AddScoped<PaymentService>();
 builder.Services.AddSingleton(new PaymentNotificationQueue(builder.Configuration["RabbitMq:Host"], builder.Configuration["RabbitMq:Password"]));
 builder.Services.AddIdentityCore<StoreUser>(options => { options.Password.RequiredLength = 12; options.Lockout.MaxFailedAccessAttempts = 5; options.User.RequireUniqueEmail = true; }).AddRoles<IdentityRole<Guid>>().AddEntityFrameworkStores<StoreDbContext>().AddSignInManager();
+builder.Services.Configure<DataProtectionTokenProviderOptions>(options => options.TokenLifespan = TimeSpan.FromHours(1));
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdentityCookies();
 builder.Services.ConfigureApplicationCookie(options => { options.Cookie.HttpOnly = true; options.Cookie.SameSite = SameSiteMode.Strict; options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always; options.ExpireTimeSpan = TimeSpan.FromHours(8); options.SlidingExpiration = true; options.Events.OnRedirectToLogin = context => { context.Response.StatusCode = 401; return Task.CompletedTask; }; options.Events.OnRedirectToAccessDenied = context => { context.Response.StatusCode = 403; return Task.CompletedTask; }; });
 builder.Services.AddAuthorization();
@@ -68,6 +79,11 @@ if (args.Contains("--migrate", StringComparer.Ordinal))
 }
 app.UseForwardedHeaders();
 app.UseExceptionHandler();
+app.Use(async (context, next) => {
+    if (context.Request.Path.StartsWithSegments("/api/v1/account") || context.Request.Path.StartsWithSegments("/api/v1/admin") || context.Request.Path.StartsWithSegments("/api/v1/cart"))
+        context.Response.Headers.CacheControl = "no-store";
+    await next(context);
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
@@ -165,7 +181,7 @@ api.MapPost("/checkout/quote", async (HttpContext context, ShippingQuoteRequest 
     catch (HttpRequestException) { return Results.Problem("Serviço de frete indisponível. Tente novamente.", statusCode: 503); }
     catch (TaskCanceledException) when (!ct.IsCancellationRequested) { return Results.Problem("Tempo de cotação excedido. Tente novamente.", statusCode: 503); }
     catch (System.Text.Json.JsonException) { return Results.Problem("Resposta de frete inválida.", statusCode: 502); }
-}).RequireAuthorization();
+}).RequireAuthorization().RequireRateLimiting("account");
 api.MapGet("/cart", async (HttpContext context, StoreDbContext db, CancellationToken ct) => {
     var userId = CustomerId(context);
     var id = await db.Carts.Where(x => x.UserId == userId).Select(x => (Guid?)x.Id).FirstOrDefaultAsync(ct);
@@ -228,9 +244,18 @@ api.MapPatch("/cart/items/{itemId:guid}", async (Guid itemId, HttpContext contex
     if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password)) return;
     var users = services.GetRequiredService<UserManager<StoreUser>>(); var roles = services.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
     if (!await roles.RoleExistsAsync("Administrator")) { var roleResult = await roles.CreateAsync(new IdentityRole<Guid>("Administrator")); if (!roleResult.Succeeded) throw new InvalidOperationException("Falha ao criar papel administrativo."); }
-    var user = await users.FindByEmailAsync(email);
-    if (user is null) { user = new StoreUser { UserName = email, Email = email, EmailConfirmed = true }; var result = await users.CreateAsync(user, password); if (!result.Succeeded) throw new InvalidOperationException("Credenciais administrativas iniciais inválidas."); }
-    if (!await users.IsInRoleAsync(user, "Administrator")) await users.AddToRoleAsync(user, "Administrator");
+    // Never elevate an account that could have been registered through the public endpoint.
+    var existing = await users.FindByEmailAsync(email);
+    if (existing is not null)
+    {
+        if (await users.IsInRoleAsync(existing, "Administrator")) return;
+        throw new InvalidOperationException("O e-mail de bootstrap já pertence a uma conta existente. Escolha outro e-mail e investigue a conta antes de prosseguir.");
+    }
+    var user = new StoreUser { UserName = email, Email = email, EmailConfirmed = true };
+    var result = await users.CreateAsync(user, password);
+    if (!result.Succeeded) throw new InvalidOperationException("Credenciais administrativas iniciais inválidas.");
+    var assignment = await users.AddToRoleAsync(user, "Administrator");
+    if (!assignment.Succeeded) throw new InvalidOperationException("Falha ao atribuir papel administrativo.");
 }
 app.Run();
 public sealed record AddCartItem(Guid ProductId, int Quantity);

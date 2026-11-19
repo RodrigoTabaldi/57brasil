@@ -2,6 +2,21 @@
   email {$ACME_EMAIL}
 }
 {$SITE_DOMAIN} {
+  header {
+    Strict-Transport-Security "max-age=31536000"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    X-Frame-Options "DENY"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    -Server
+  }
+  @privateApi path /api/v1/account/* /api/v1/admin/* /api/v1/cart*
+  header @privateApi Cache-Control "no-store"
+  @accountPage path /conta /conta/*
+  header @accountPage {
+    Cache-Control "no-store"
+    Referrer-Policy "no-referrer"
+  }
   log {
     output stdout
     format json

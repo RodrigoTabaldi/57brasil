@@ -30,8 +30,8 @@ body{color:var(--ink)}
 .search button,.btn-primary,.button,.explore-search button{background:var(--green);color:#fff}
 .search button:hover,.btn-primary:hover,.button:hover,.explore-search button:hover{background:#004b28}
 :focus-visible{outline-color:#d9a500}
-.store-hero,.store-hero-content{min-height:clamp(390px,39vw,580px);color:var(--ink)}
-.store-hero{background:#fff}
+.store-hero,.store-hero-content{min-height:clamp(390px,34vw,460px);color:var(--ink)}
+.store-hero{max-width:1440px;margin-inline:auto;background:#fff}
 .store-hero-content{background:transparent}
 .store-hero-image{object-fit:cover;object-position:center;animation:banner-drift 14s ease-in-out infinite alternate}
 .store-hero-shade{background:linear-gradient(90deg,#ffffffed 0%,#ffffffd9 27%,#ffffff85 46%,transparent 65%)}

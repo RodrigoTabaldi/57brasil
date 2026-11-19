@@ -5,4 +5,6 @@
 **/bin
 **/obj
 .env
+.env.production
+backups/
 **/.keys

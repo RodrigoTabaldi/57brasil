@@ -12,7 +12,7 @@ const apiUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5000";
 export async function SiteHeader() {
   let departments: Department[] = [];
   try {
-    const response = await fetch(`${apiUrl}/api/v1/categories`, { cache: "no-store" });
+    const response = await fetch(`${apiUrl}/api/v1/categories`, { next: { revalidate: 60 } });
     if (response.ok) departments = ((await response.json()) as Department[]).filter(item => item.parentId === null);
   } catch { /* The catalog remains available when the API is temporarily offline. */ }
   const demoGroups = departments.length === 0 ? [...new Set(demoPieces.map(piece => piece.group))] : [];

@@ -21,6 +21,8 @@ public sealed class StoreDbContext(DbContextOptions<StoreDbContext> options) : I
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<PaymentNotification> PaymentNotifications => Set<PaymentNotification>();
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<PaymentEvent> PaymentEvents => Set<PaymentEvent>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -41,6 +43,28 @@ public sealed class StoreDbContext(DbContextOptions<StoreDbContext> options) : I
         model.Entity<Order>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.CartId).IsUnique(); e.HasIndex(x => x.IdempotencyKey).IsUnique(); e.HasIndex(x => x.ProviderPaymentId).IsUnique(); e.Property(x => x.IdempotencyKey).HasMaxLength(100); e.Property(x => x.RequestHash).HasMaxLength(64); e.Property(x => x.BuyerEmail).HasMaxLength(254); e.Property(x => x.ProviderPaymentId).HasMaxLength(80); e.Property(x => x.Status).HasConversion<string>().HasMaxLength(32); e.Property(x => x.ItemsTotal).HasPrecision(12, 2); e.Property(x => x.ShippingTotal).HasPrecision(12, 2); e.ToTable(t => { t.HasCheckConstraint("ck_order_totals", "\"ItemsTotal\" >= 0 AND \"ShippingTotal\" >= 0"); }); });
         model.Entity<OrderItem>(e => { e.HasKey(x => x.Id); e.HasIndex(x => new { x.OrderId, x.ProductId }).IsUnique(); e.HasOne(x => x.Order).WithMany(x => x.Items).HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Cascade); e.HasOne<Product>().WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict); e.Property(x => x.Sku).HasMaxLength(80); e.Property(x => x.Name).HasMaxLength(240); e.Property(x => x.UnitPrice).HasPrecision(12, 2); e.ToTable(t => t.HasCheckConstraint("ck_order_item", "\"Quantity\" > 0 AND \"UnitPrice\" >= 0")); });
         model.Entity<PaymentNotification>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.RequestId).IsUnique(); e.HasIndex(x => new { x.ProcessedAt, x.NextAttemptAt }); e.Property(x => x.RequestId).HasMaxLength(100); e.Property(x => x.PaymentId).HasMaxLength(80); e.Property(x => x.Outcome).HasMaxLength(40); });
+        model.Entity<Payment>(e => {
+            e.HasKey(x => x.Id);
+            e.HasOne(x => x.Order).WithMany().HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => x.OrderId);
+            e.HasIndex(x => new { x.Provider, x.IdempotencyKey }).IsUnique();
+            e.HasIndex(x => new { x.Provider, x.ProviderPaymentId }).IsUnique();
+            e.Property(x => x.Provider).HasMaxLength(40);
+            e.Property(x => x.ProviderPaymentId).HasMaxLength(160);
+            e.Property(x => x.PaymentMethod).HasMaxLength(32);
+            e.Property(x => x.Currency).HasMaxLength(3);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
+            e.Property(x => x.IdempotencyKey).HasMaxLength(100);
+            e.Property(x => x.Amount).HasPrecision(12, 2);
+            e.ToTable(t => t.HasCheckConstraint("ck_payment_amount", "\"Amount\" > 0"));
+        });
+        model.Entity<PaymentEvent>(e => {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.Provider, x.ProviderEventId }).IsUnique();
+            e.Property(x => x.Provider).HasMaxLength(40);
+            e.Property(x => x.ProviderEventId).HasMaxLength(160);
+            e.Property(x => x.ProviderPaymentId).HasMaxLength(160);
+        });
     }
 }
 

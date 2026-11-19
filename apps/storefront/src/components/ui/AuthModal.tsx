@@ -1,4 +1,5 @@
-"use client";
+﻿"use client";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 type User = { fullName: string; email: string };
@@ -20,6 +21,7 @@ export function AuthModal({ onClose, onSuccess }: { onClose: () => void; onSucce
       {mode === "register" && <><label>Nome completo<input ref={first} name="fullName" autoComplete="name" required minLength={2} maxLength={160}/></label><label>Celular<input name="phone" inputMode="tel" autoComplete="tel" required pattern="[0-9() +.-]{10,20}"/></label><label>CPF (opcional)<input name="cpf" inputMode="numeric" pattern="[0-9.\-]{11,14}"/></label></>}
       <label>E-mail<input ref={mode === "register" ? undefined : first} name="email" type="email" autoComplete="email" required/></label>
       {mode !== "forgot" && <><label>Senha<input name="password" type={show ? "text" : "password"} autoComplete={mode === "register" ? "new-password" : "current-password"} required minLength={mode === "register" ? 12 : undefined}/></label>{mode === "register" && <><small>Mínimo de 12 caracteres com maiúscula, minúscula, número e símbolo.</small><label>Confirmar senha<input name="confirmPassword" type={show ? "text" : "password"} autoComplete="new-password" required/></label></>}<button type="button" onClick={() => setShow(!show)}>{show ? "Ocultar" : "Mostrar"} senha</button></>}
+      {mode === "register" && <p className="auth-privacy">Usamos seus dados para criar e administrar sua conta. Saiba mais em <Link href="/privacidade" target="_blank" rel="noopener noreferrer">Privacidade e dados pessoais (abre em nova aba)</Link>.</p>}
       {error && <p role="alert">{error}</p>}<button className="button" disabled={busy} type="submit">{busy ? "Aguarde..." : mode === "register" ? "Criar conta" : mode === "forgot" ? "Enviar instruções" : "Entrar"}</button>
     </form>}
     <div className="auth-switch"><button type="button" onClick={() => { setMode(mode === "register" ? "login" : "register"); setError(""); setDone(false); }}>{mode === "register" ? "Já tenho conta" : "Criar conta"}</button><button type="button" onClick={() => { setMode(mode === "forgot" ? "login" : "forgot"); setError(""); setDone(false); }}>{mode === "forgot" ? "Voltar ao login" : "Esqueci minha senha"}</button></div>

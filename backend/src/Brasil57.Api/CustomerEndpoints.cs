@@ -52,9 +52,12 @@ public static class CustomerEndpoints
         group.MapPost("/logout", async (HttpContext c, SignInManager<StoreUser> signIn) => { if (!SameOrigin(c)) return Results.StatusCode(403); await signIn.SignOutAsync(); return Results.NoContent(); }).RequireAuthorization();
         group.MapPost("/forgot-password", async (HttpContext c, EmailInput input, UserManager<StoreUser> users) => {
             if (!SameOrigin(c)) return Results.StatusCode(403);
-            if (string.IsNullOrWhiteSpace(config["Smtp:Host"]) || string.IsNullOrWhiteSpace(config["Smtp:From"]) || string.IsNullOrWhiteSpace(config["Storefront:Url"])) return Results.Problem("Recuperação de senha indisponível.", statusCode: 503);
+            if (string.IsNullOrWhiteSpace(config["Smtp:Host"]) || string.IsNullOrWhiteSpace(config["Smtp:From"]) ||
+                !Uri.TryCreate(config["Storefront:Url"], UriKind.Absolute, out var storefrontUrl) ||
+                (!c.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment() && storefrontUrl.Scheme != Uri.UriSchemeHttps))
+                return Results.Problem("Recuperação de senha indisponível.", statusCode: 503);
             var user = await users.FindByEmailAsync(input.Email?.Trim().ToLowerInvariant() ?? "");
-            if (user is not null) { var token = await users.GeneratePasswordResetTokenAsync(user); var link = $"{config["Storefront:Url"]!.TrimEnd('/')}/conta?email={Uri.EscapeDataString(user.Email!)}&token={Uri.EscapeDataString(token)}";
+            if (user is not null) { var token = await users.GeneratePasswordResetTokenAsync(user); var link = $"{storefrontUrl.ToString().TrimEnd('/')}/conta#email={Uri.EscapeDataString(user.Email!)}&token={Uri.EscapeDataString(token)}";
                 using var message = new MailMessage(config["Smtp:From"]!, user.Email!, "Redefinir senha - 57 Brasil", $"Para redefinir sua senha, acesse: {link}");
                 using var smtp = new SmtpClient(config["Smtp:Host"], int.TryParse(config["Smtp:Port"], out var port) ? port : 587) { EnableSsl = true, Credentials = new NetworkCredential(config["Smtp:User"], config["Smtp:Password"]) };
                 try { await smtp.SendMailAsync(message); } catch (SmtpException) { return Results.Problem("Recuperação de senha indisponível.", statusCode: 503); }

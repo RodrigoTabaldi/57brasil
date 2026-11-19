@@ -11,12 +11,14 @@ public static partial class AdminEndpoints
     public static void MapAdmin(this IEndpointRouteBuilder app)
     {
         var admin = app.MapGroup("/api/v1/admin");
-        admin.MapPost("/session", async (HttpContext context, AdminLogin input, SignInManager<StoreUser> signIn, CancellationToken ct) => {
+        admin.MapPost("/session", async (HttpContext context, AdminLogin input, UserManager<StoreUser> users, SignInManager<StoreUser> signIn) => {
             if (!SameOrigin(context)) return Results.StatusCode(403);
             if (string.IsNullOrWhiteSpace(input.Email) || string.IsNullOrWhiteSpace(input.Password)) return Results.BadRequest();
-            var result = await signIn.PasswordSignInAsync(input.Email, input.Password, false, true);
+            var user = await users.FindByEmailAsync(input.Email.Trim());
+            if (user is null || !await users.IsInRoleAsync(user, "Administrator")) return Results.Unauthorized();
+            var result = await signIn.PasswordSignInAsync(user, input.Password, false, true);
             return result.Succeeded ? Results.NoContent() : Results.Unauthorized();
-        });
+        }).RequireRateLimiting("account");
         var protectedAdmin = admin.MapGroup("").RequireAuthorization(policy => policy.RequireRole("Administrator"));
         protectedAdmin.MapDelete("/session", async (HttpContext context, SignInManager<StoreUser> signIn) => { if (!SameOrigin(context)) return Results.StatusCode(403); await signIn.SignOutAsync(); return Results.NoContent(); });
         protectedAdmin.MapGet("/dashboard", async (StoreDbContext db, CancellationToken ct) => Results.Ok(new { products = await db.Products.CountAsync(ct), publishedProducts = await db.Products.CountAsync(x => x.Published, ct), lowStock = await db.Inventory.CountAsync(x => x.OnHand - x.Reserved < 5, ct) }));

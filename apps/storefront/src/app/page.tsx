@@ -4,22 +4,29 @@ import { ArrowRight, ChevronRight, ShieldCheck } from "lucide-react";
 import { DemoPieceCard } from "@/components/catalog/DemoPieceCard";
 import { DemoCatalogFilters } from "@/components/catalog/DemoCatalogFilters";
 import { ProductCard } from "@/components/catalog/ProductCard";
-import { demoPieces } from "@/lib/demo-catalog";
+import { demoBrand, demoPieces } from "@/lib/demo-catalog";
 import { getProducts } from "@/lib/catalog";
 
-type Props = { searchParams: Promise<{ q?: string; peca?: string; preco?: string }> };
+type Props = { searchParams: Promise<{ q?: string; peca?: string; marcaDemo?: string; tipo?: string }> };
+
+const vehicleCategories: Record<string, string> = {
+  carro: "carros",
+  moto: "motocicletas",
+  caminhao: "caminhoes-e-veiculos-pesados",
+};
 
 export default async function Home({ searchParams }: Props) {
-  const { q, peca, preco } = await searchParams;
-  const products = await getProducts(new URLSearchParams()).catch(() => null);
+  const { q, peca, marcaDemo, tipo } = await searchParams;
+  const vehicleType = tipo && vehicleCategories[tipo] ? tipo : undefined;
+  const productParams = new URLSearchParams();
+  if (vehicleType) productParams.set("category", vehicleCategories[vehicleType]);
+  const products = await getProducts(productParams).catch(() => null);
   const allGroups = [...new Set(demoPieces.map(piece => piece.group))];
   const search = q?.trim().toLocaleLowerCase("pt-BR") ?? "";
-  const visiblePieces = demoPieces.filter(piece => {
+  const visiblePieces = demoPieces.map((piece, index) => ({ piece, index })).filter(({ piece, index }) => {
     if (peca && piece.group !== peca) return false;
-    if (search && !`${piece.name} ${piece.group}`.toLocaleLowerCase("pt-BR").includes(search)) return false;
-    if (preco === "ate-100") return piece.demoPrice <= 100;
-    if (preco === "100-300") return piece.demoPrice > 100 && piece.demoPrice <= 300;
-    if (preco === "acima-300") return piece.demoPrice > 300;
+    if (marcaDemo && demoBrand(index) !== marcaDemo) return false;
+    if (search && !`${piece.name} ${piece.group} ${demoBrand(index)}`.toLocaleLowerCase("pt-BR").includes(search)) return false;
     return true;
   });
   return <main id="main-content">
@@ -36,7 +43,21 @@ export default async function Home({ searchParams }: Props) {
       </div>
     </section>
 
-    <section id="catalogo" className="showcase-section storefront-catalog" aria-labelledby="showcase-title"><div className="shell"><div className="store-section-head"><div><span className="section-kicker">VITRINE 57 BRASIL</span><h2 id="showcase-title">Encontre sua peça</h2><p className="catalog-intro">Veículo, sistema e busca em um só lugar.</p></div><Link className="inline-link" href="/produtos">Produtos cadastrados <ArrowRight size={17} aria-hidden="true" /></Link></div>{products?.items.length ? <div className="product-grid">{products.items.map(product => <ProductCard product={product} key={product.id} />)}</div> : <><DemoCatalogFilters groups={allGroups} selectedGroup={peca} query={q} price={preco} count={visiblePieces.length} /><p className="demo-notice">Valores simulados para demonstração. Sem oferta, estoque ou compatibilidade comercial.</p>{visiblePieces.length ? <div className="demo-piece-grid">{visiblePieces.map((piece,index) => <DemoPieceCard piece={piece} index={index} key={piece.slug} />)}</div> : <div className="catalog-empty"><h3>Nenhuma peça encontrada</h3><p>Altere a busca ou limpe os filtros.</p><Link href="/#catalogo" className="inline-link">Limpar filtros</Link></div>}</>}</div></section>
+    <section id="catalogo" className="showcase-section storefront-catalog" aria-labelledby="showcase-title">
+      <div className="shell">
+        <div className="store-section-head"><div><span className="section-kicker">VITRINE 57 BRASIL</span><h2 id="showcase-title">Encontre sua peça</h2><p className="catalog-intro">Veículo, sistema e busca em um só lugar.</p></div><Link className="inline-link" href="/produtos">Produtos cadastrados <ArrowRight size={17} aria-hidden="true" /></Link></div>
+        <DemoCatalogFilters groups={allGroups} selectedGroup={peca} query={q} selectedBrand={marcaDemo} vehicleType={vehicleType} showPieceFilters={!products?.items.length} count={products?.items.length ? products.total : vehicleType ? 0 : visiblePieces.length} />
+        {vehicleType ? (
+          products?.items.length ? <div className="product-grid">{products.items.map(product => <ProductCard product={product} key={product.id} />)}</div> :
+          <div className="catalog-empty"><h3>Nenhuma peça encontrada</h3><p>{products ? "Ainda não há produtos cadastrados nessa categoria." : "Não foi possível carregar os produtos. Tente novamente em instantes."}</p></div>
+        ) : products?.items.length ? (
+          <div className="product-grid">{products.items.map(product => <ProductCard product={product} key={product.id} />)}</div>
+        ) : <>
+          <p className="demo-notice">Tipos de peça e marcas fictícias para demonstração. Sem oferta, estoque ou compatibilidade comercial.</p>
+          {visiblePieces.length ? <div className="demo-piece-grid">{visiblePieces.map(({piece,index}) => <DemoPieceCard piece={piece} index={index} key={piece.slug} />)}</div> : <div className="catalog-empty"><h3>Nenhuma peça encontrada</h3><p>Altere a busca ou limpe os filtros.</p><Link href="/#catalogo" className="inline-link">Limpar filtros</Link></div>}
+        </>}
+      </div>
+    </section>
 
     <section className="shell store-assurance"><ShieldCheck size={27} aria-hidden="true" /><div><strong>Escolha com informação</strong><p>Compatibilidade só é indicada quando há aplicação cadastrada. Confirme os dados técnicos antes da compra.</p></div><Link href="/veiculo">Buscar pelo veículo <ArrowRight size={17} aria-hidden="true" /></Link></section>
   </main>;
