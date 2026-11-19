@@ -22,7 +22,7 @@ public static partial class AdminEndpoints
         var protectedAdmin = admin.MapGroup("").RequireAuthorization(policy => policy.RequireRole("Administrator"));
         protectedAdmin.MapDelete("/session", async (HttpContext context, SignInManager<StoreUser> signIn) => { if (!SameOrigin(context)) return Results.StatusCode(403); await signIn.SignOutAsync(); return Results.NoContent(); });
         protectedAdmin.MapGet("/dashboard", async (StoreDbContext db, CancellationToken ct) => Results.Ok(new { products = await db.Products.CountAsync(ct), publishedProducts = await db.Products.CountAsync(x => x.Published, ct), lowStock = await db.Inventory.CountAsync(x => x.OnHand - x.Reserved < 5, ct) }));
-        protectedAdmin.MapGet("/products", async (StoreDbContext db, CancellationToken ct) => await db.Products.AsNoTracking().OrderBy(x => x.Name).Take(100).Select(x => new { x.Id, x.Name, x.Sku, x.Slug, x.Price, x.Published }).ToListAsync(ct));
+        protectedAdmin.MapGet("/products", async (StoreDbContext db, CancellationToken ct) => await db.Products.AsNoTracking().OrderBy(x => x.Name).Take(100).Select(x => new { x.Id, x.Name, x.Sku, x.Slug, x.Price, x.Published, x.BrandId, x.ManufacturerCode, x.ShortDescription, x.Description, x.WeightKg, x.HeightCm, x.WidthCm, x.LengthCm, Available = x.Inventory.OnHand - x.Inventory.Reserved }).ToListAsync(ct));
         protectedAdmin.MapPost("/categories", async (HttpContext context, AdminCategory input, StoreDbContext db, CatalogTaxonomyCache cache, CancellationToken ct) => {
             if (!SameOrigin(context)) return Results.StatusCode(403);
             if (!ValidName(input.Name) || !ValidSlug(input.Slug, 140)) return Results.BadRequest();
@@ -45,24 +45,53 @@ public static partial class AdminEndpoints
         });
         protectedAdmin.MapPost("/products", async (HttpContext context, AdminProduct input, StoreDbContext db, CancellationToken ct) => {
             if (!SameOrigin(context)) return Results.StatusCode(403);
-            if (!ValidName(input.Name) || !ValidSlug(input.Slug, 180) || string.IsNullOrWhiteSpace(input.Sku) || input.Sku.Trim().Length > 80 || input.Price is < 0 or > 9999999999.99m || input.Stock < 0 || input.WeightKg is < 0 or > 999999 || input.HeightCm is < 0 or > 999999 || input.WidthCm is < 0 or > 999999 || input.LengthCm is < 0 or > 999999 || (input.Published && (input.WeightKg is null or <= 0 || input.HeightCm is null or <= 0 || input.WidthCm is null or <= 0 || input.LengthCm is null or <= 0))) return Results.BadRequest();
-            var product = new Product { Name = input.Name.Trim(), Slug = input.Slug.Trim(), Sku = input.Sku.Trim(), CategoryId = input.CategoryId, BrandId = input.BrandId, Price = input.Price, WeightKg = input.WeightKg, HeightCm = input.HeightCm, WidthCm = input.WidthCm, LengthCm = input.LengthCm, Published = input.Published, Inventory = new InventoryItem { OnHand = input.Stock } };
+            if (!ValidName(input.Name) || !ValidSlug(input.Slug, 180) || string.IsNullOrWhiteSpace(input.Sku) || input.Sku.Trim().Length > 80 || input.Price is < 0 or > 9999999999.99m || input.Stock < 0 || input.WeightKg is < 0 or > 999999 || input.HeightCm is < 0 or > 999999 || input.WidthCm is < 0 or > 999999 || input.LengthCm is < 0 or > 999999 || (input.Published && (input.Price <= 0 || input.WeightKg is null or <= 0 || input.HeightCm is null or <= 0 || input.WidthCm is null or <= 0 || input.LengthCm is null or <= 0))) return Results.BadRequest();
+            if (input.VehicleFamilies?.Any(x => x is not ("carro" or "moto" or "caminhao")) == true) return Results.BadRequest();
+            var product = new Product { Name = input.Name.Trim(), Slug = input.Slug.Trim(), Sku = input.Sku.Trim(), CategoryId = input.CategoryId, BrandId = input.BrandId, Price = input.Price, WeightKg = input.WeightKg, HeightCm = input.HeightCm, WidthCm = input.WidthCm, LengthCm = input.LengthCm, Published = input.Published, VehicleFamilies = input.VehicleFamilies?.Distinct().ToArray() ?? [], Inventory = new InventoryItem { OnHand = input.Stock } };
             db.Products.Add(product);
             Audit(db, context, "create", "product", product.Id);
             try { await db.SaveChangesAsync(ct); } catch (DbUpdateException) { return Results.Conflict(new { message = "SKU ou slug duplicado, ou categoria e marca inválidas." }); }
             return Results.Created($"/api/v1/products/{product.Slug}", new { product.Id });
         });
+        protectedAdmin.MapPost("/products/{productId:guid}/images", async (Guid productId, HttpContext context, AdminProductImage input, StoreDbContext db, CancellationToken ct) => {
+            if (!SameOrigin(context)) return Results.StatusCode(403);
+            if (!Uri.TryCreate(input.Url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps || input.Url.Length > 500 || !ValidName(input.AltText) || input.SortOrder is < 0 or > 1000)
+                return Results.ValidationProblem(new Dictionary<string, string[]> { ["image"] = ["Informe URL HTTPS, texto alternativo e ordem válidos."] });
+            if (!await db.Products.AnyAsync(x => x.Id == productId, ct)) return Results.NotFound();
+            var image = new ProductImage { ProductId = productId, Url = input.Url, AltText = input.AltText.Trim(), SortOrder = input.SortOrder };
+            db.ProductImages.Add(image);
+            Audit(db, context, "add_image", "product", productId);
+            await db.SaveChangesAsync(ct);
+            return Results.Created($"/api/v1/admin/products/{productId}/images/{image.Id}", new { image.Id });
+        });
         protectedAdmin.MapPatch("/products/{productId:guid}", async (Guid productId, HttpContext context, UpdateProduct input, StoreDbContext db, CancellationToken ct) => {
             if (!SameOrigin(context)) return Results.StatusCode(403);
             if (input.Name is not null && !ValidName(input.Name)) return Results.BadRequest();
             if (input.Price is < 0 or > 9999999999.99m) return Results.BadRequest();
-            var product = await db.Products.FirstOrDefaultAsync(x => x.Id == productId, ct);
+            if (input.Sku is not null && (string.IsNullOrWhiteSpace(input.Sku) || input.Sku.Length > 80)) return Results.BadRequest();
+            if (input.WeightKg is < 0 or > 999999 || input.HeightCm is < 0 or > 999999 || input.WidthCm is < 0 or > 999999 || input.LengthCm is < 0 or > 999999) return Results.BadRequest();
+            var product = await db.Products.Include(x => x.Brand).FirstOrDefaultAsync(x => x.Id == productId, ct);
             if (product is null) return Results.NotFound();
             if (input.Name is not null) product.Name = input.Name.Trim();
+            if (input.Sku is not null) product.Sku = input.Sku.Trim();
+            if (input.ManufacturerCode is not null) product.ManufacturerCode = input.ManufacturerCode.Trim();
+            if (input.ShortDescription is not null) product.ShortDescription = input.ShortDescription.Trim();
+            if (input.Description is not null) product.Description = input.Description.Trim();
+            if (input.BrandId is not null) {
+                var brand = await db.Brands.FirstOrDefaultAsync(x => x.Id == input.BrandId, ct);
+                if (brand is null) return Results.BadRequest(new { message = "Marca inválida." });
+                product.Brand = brand; product.BrandId = brand.Id;
+            }
             if (input.Price is not null) product.Price = input.Price.Value;
+            if (input.WeightKg is not null) product.WeightKg = input.WeightKg;
+            if (input.HeightCm is not null) product.HeightCm = input.HeightCm;
+            if (input.WidthCm is not null) product.WidthCm = input.WidthCm;
+            if (input.LengthCm is not null) product.LengthCm = input.LengthCm;
+            if (input.Published == true && (product.Price <= 0 || product.Brand.Slug == "marca-a-confirmar" || product.WeightKg is null or <= 0 || product.HeightCm is null or <= 0 || product.WidthCm is null or <= 0 || product.LengthCm is null or <= 0))
+                return Results.ValidationProblem(new Dictionary<string, string[]> { ["product"] = ["Cadastre preço, marca real, peso e dimensões antes de publicar a venda."] });
             if (input.Published is not null) product.Published = input.Published.Value;
             Audit(db, context, "update", "product", product.Id);
-            await db.SaveChangesAsync(ct);
+            try { await db.SaveChangesAsync(ct); } catch (DbUpdateException) { return Results.Conflict(new { message = "SKU duplicado ou dados inválidos." }); }
             return Results.NoContent();
         });
         protectedAdmin.MapPost("/inventory/{productId:guid}/adjustments", async (Guid productId, HttpContext context, StockAdjustment input, StoreDbContext db, CancellationToken ct) => {
@@ -85,13 +114,14 @@ public static partial class AdminEndpoints
 public sealed record AdminLogin(string Email, string Password);
 public sealed record AdminCategory(string Name, string Slug, Guid? ParentId);
 public sealed record AdminBrand(string Name, string Slug);
-public sealed record AdminProduct(string Name, string Slug, string Sku, Guid CategoryId, Guid BrandId, decimal Price, int Stock, bool Published, decimal? WeightKg, decimal? HeightCm, decimal? WidthCm, decimal? LengthCm);
+public sealed record AdminProduct(string Name, string Slug, string Sku, Guid CategoryId, Guid BrandId, decimal Price, int Stock, bool Published, decimal? WeightKg, decimal? HeightCm, decimal? WidthCm, decimal? LengthCm, string[]? VehicleFamilies = null);
+public sealed record AdminProductImage(string Url, string AltText, int SortOrder);
 
 
 
 
 
-public sealed record UpdateProduct(string? Name, decimal? Price, bool? Published);
+public sealed record UpdateProduct(string? Name, decimal? Price, bool? Published, string? Sku = null, Guid? BrandId = null, string? ManufacturerCode = null, string? ShortDescription = null, string? Description = null, decimal? WeightKg = null, decimal? HeightCm = null, decimal? WidthCm = null, decimal? LengthCm = null);
 public sealed record StockAdjustment(int Delta);
 
 

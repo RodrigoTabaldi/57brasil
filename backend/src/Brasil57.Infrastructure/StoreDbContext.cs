@@ -9,6 +9,7 @@ public sealed class StoreDbContext(DbContextOptions<StoreDbContext> options) : I
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Brand> Brands => Set<Brand>();
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductImage> ProductImages => Set<ProductImage>();
     public DbSet<InventoryItem> Inventory => Set<InventoryItem>();
     public DbSet<Cart> Carts => Set<Cart>();
     public DbSet<CartItem> CartItems => Set<CartItem>();
@@ -31,6 +32,7 @@ public sealed class StoreDbContext(DbContextOptions<StoreDbContext> options) : I
         model.Entity<Category>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.Slug).IsUnique(); e.Property(x => x.Name).HasMaxLength(120); e.Property(x => x.Slug).HasMaxLength(140); e.HasOne(x => x.Parent).WithMany().HasForeignKey(x => x.ParentId).OnDelete(DeleteBehavior.Restrict); });
         model.Entity<Brand>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.Slug).IsUnique(); e.Property(x => x.Name).HasMaxLength(120); e.Property(x => x.Slug).HasMaxLength(140); });
         model.Entity<Product>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.Sku).IsUnique(); e.HasIndex(x => x.Slug).IsUnique(); e.HasIndex(x => x.Name); e.Property(x => x.Price).HasPrecision(12,2); e.Property(x => x.WeightKg).HasPrecision(9,3); e.Property(x => x.HeightCm).HasPrecision(9,2); e.Property(x => x.WidthCm).HasPrecision(9,2); e.Property(x => x.LengthCm).HasPrecision(9,2); e.ToTable(t => t.HasCheckConstraint("ck_product_price", "\"Price\" >= 0")); e.Property(x => x.Sku).HasMaxLength(80); e.Property(x => x.Slug).HasMaxLength(180); e.Property(x => x.Name).HasMaxLength(240); e.Property(x => x.ManufacturerCode).HasMaxLength(100); e.HasOne(x => x.Category).WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict); e.HasOne(x => x.Brand).WithMany().HasForeignKey(x => x.BrandId).OnDelete(DeleteBehavior.Restrict); });
+        model.Entity<ProductImage>(e => { e.HasKey(x => x.Id); e.HasIndex(x => new { x.ProductId, x.SortOrder }); e.Property(x => x.Url).HasMaxLength(500); e.Property(x => x.AltText).HasMaxLength(240); e.HasOne(x => x.Product).WithMany(x => x.Images).HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Cascade); });
         model.Entity<InventoryItem>(e => { e.HasKey(x => x.ProductId); e.HasOne(x => x.Product).WithOne(x => x.Inventory).HasForeignKey<InventoryItem>(x => x.ProductId); e.ToTable(t => { t.HasCheckConstraint("ck_stock_nonnegative", "\"OnHand\" >= 0 AND \"Reserved\" >= 0 AND \"Reserved\" <= \"OnHand\""); }); });
         model.Entity<VehicleMake>(e => { e.HasKey(x => x.Id); e.Property(x => x.Name).HasMaxLength(100); });
         model.Entity<VehicleModel>(e => { e.HasKey(x => x.Id); e.Property(x => x.Name).HasMaxLength(120); e.HasIndex(x => new { x.MakeId, x.Name }).IsUnique(); });

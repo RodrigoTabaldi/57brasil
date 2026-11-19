@@ -12,6 +12,11 @@ public static class CustomerEndpoints
     static bool SameOrigin(HttpContext c) => Uri.TryCreate(c.Request.Headers.Origin.ToString(), UriKind.Absolute, out var u) && u.Host.Equals(c.Request.Host.Host, StringComparison.OrdinalIgnoreCase) && u.Scheme == c.Request.Scheme && u.Port == (c.Request.Host.Port ?? (u.Scheme == "https" ? 443 : 80));
     static object Profile(StoreUser u) => new { u.Id, u.FullName, u.Email, u.PhoneNumber, u.Cpf };
     static string Digits(string? value) => new((value ?? "").Where(char.IsDigit).ToArray());
+    static string PhoneDigits(string? value)
+    {
+        var digits = Digits(value);
+        return digits.Length is 12 or 13 && digits.StartsWith("55", StringComparison.Ordinal) ? digits[2..] : digits;
+    }
     static bool ValidCpf(string cpf)
     {
         if (cpf.Length != 11 || cpf.Distinct().Count() == 1) return false;
@@ -23,7 +28,7 @@ public static class CustomerEndpoints
         var group = app.MapGroup("/api/v1/account");
         group.MapPost("/register", async (HttpContext c, RegisterInput input, UserManager<StoreUser> users, SignInManager<StoreUser> signIn, CancellationToken ct) => {
             if (!SameOrigin(c)) return Results.StatusCode(403);
-            var email = input.Email?.Trim().ToLowerInvariant(); var phone = Digits(input.Phone); var cpf = Digits(input.Cpf);
+            var email = input.Email?.Trim().ToLowerInvariant(); var phone = PhoneDigits(input.Phone); var cpf = Digits(input.Cpf);
             if (input.FullName?.Trim().Length is < 2 or > 160 || string.IsNullOrWhiteSpace(email) || !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(email) || phone.Length is < 10 or > 11 || (cpf.Length > 0 && !ValidCpf(cpf)) || input.Password != input.ConfirmPassword)
                 return Results.ValidationProblem(new Dictionary<string, string[]> { ["form"] = ["Confira nome, e-mail, telefone, CPF e confirmação da senha."] });
             var user = new StoreUser { UserName = email, Email = email, FullName = input.FullName!.Trim(), PhoneNumber = phone, Cpf = cpf.Length == 0 ? null : cpf };
@@ -43,7 +48,7 @@ public static class CustomerEndpoints
         group.MapPatch("/me", async (HttpContext c, ClaimsPrincipal principal, ProfileInput input, UserManager<StoreUser> users) => {
             if (!SameOrigin(c)) return Results.StatusCode(403);
             var user = await users.GetUserAsync(principal); if (user is null) return Results.Unauthorized();
-            var phone = Digits(input.Phone); var cpf = Digits(input.Cpf);
+            var phone = PhoneDigits(input.Phone); var cpf = Digits(input.Cpf);
             if (input.FullName?.Trim().Length is < 2 or > 160 || phone.Length is < 10 or > 11 || (cpf.Length > 0 && !ValidCpf(cpf))) return Results.BadRequest(new { message = "Dados de perfil inválidos." });
             user.FullName = input.FullName!.Trim(); user.PhoneNumber = phone; user.Cpf = cpf.Length == 0 ? null : cpf;
             try { var result = await users.UpdateAsync(user); return result.Succeeded ? Results.Ok(Profile(user)) : Results.Conflict(new { message = "CPF já cadastrado." }); }

@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { ArrowRight, SlidersHorizontal } from "lucide-react";
 import { getProducts } from "@/lib/catalog";
 import { ProductCard } from "@/components/catalog/ProductCard";
@@ -6,7 +6,7 @@ import { ProductCard } from "@/components/catalog/ProductCard";
 type Filters = { q?: string; categoria?: string; marca?: string; pagina?: string; vehicleVersion?: string; year?: string };
 type Option = { id: string; name: string; slug: string };
 type Props = { searchParams: Promise<Filters> };
-const baseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5000";
+const baseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5250";
 async function getOptions(path: string): Promise<Option[]> {
   const response = await fetch(`${baseUrl}/api/v1/${path}`, { cache: "no-store" });
   if (!response.ok) throw new Error(`Não foi possível carregar ${path}.`);

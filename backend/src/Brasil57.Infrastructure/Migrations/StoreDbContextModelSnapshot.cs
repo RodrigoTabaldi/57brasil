@@ -474,6 +474,9 @@ namespace Brasil57.Infrastructure.Migrations
                     b.Property<Guid>("BrandId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("CatalogVisible")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uuid");
 
@@ -519,6 +522,10 @@ namespace Brasil57.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(180)
                         .HasColumnType("character varying(180)");
+
+                    b.PrimitiveCollection<string[]>("VehicleFamilies")
+                        .IsRequired()
+                        .HasColumnType("text[]");
 
                     b.Property<decimal?>("WeightKg")
                         .HasPrecision(9, 3)
@@ -574,6 +581,35 @@ namespace Brasil57.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("ck_application_years", "\"StartYear\" <= \"EndYear\"");
                         });
+                });
+
+            modelBuilder.Entity("Brasil57.Domain.ProductImage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AltText")
+                        .IsRequired()
+                        .HasMaxLength(240)
+                        .HasColumnType("character varying(240)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId", "SortOrder");
+
+                    b.ToTable("ProductImages");
                 });
 
             modelBuilder.Entity("Brasil57.Domain.VehicleMake", b =>
@@ -975,6 +1011,17 @@ namespace Brasil57.Infrastructure.Migrations
                     b.Navigation("VehicleVersion");
                 });
 
+            modelBuilder.Entity("Brasil57.Domain.ProductImage", b =>
+                {
+                    b.HasOne("Brasil57.Domain.Product", "Product")
+                        .WithMany("Images")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("Brasil57.Domain.VehicleModel", b =>
                 {
                     b.HasOne("Brasil57.Domain.VehicleMake", "Make")
@@ -1060,6 +1107,8 @@ namespace Brasil57.Infrastructure.Migrations
 
             modelBuilder.Entity("Brasil57.Domain.Product", b =>
                 {
+                    b.Navigation("Images");
+
                     b.Navigation("Inventory")
                         .IsRequired();
                 });

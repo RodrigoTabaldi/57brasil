@@ -30,10 +30,10 @@ export function AvailableDemoProducts({ name }: { name: string }) {
   if (matches === null) return <p role="status">Consultando produtos cadastrados…</p>;
   if (matches.length === 0) return <p>Nenhum produto cadastrado e disponível para compra nesta categoria.</p>;
 
-  return matches.map(product => <div className="demo-purchase-item" key={product.id}>
+  return matches.filter((product): product is ProductSummary & { price: number; available: number } => product.price !== null && product.available !== null).map(product => <div className="demo-purchase-item" key={product.id}>
     <Link href={`/produtos/${product.slug}`}>{product.name}</Link>
     <p>{product.brand} · SKU {product.sku}</p>
     <strong>{formatPrice(product.price)}</strong>
-    <AddToCart productId={product.id} available={product.available} price={product.price} />
+    <AddToCart productId={product.id} available={product.available} price={product.price} slug={product.slug} />
   </div>);
 }

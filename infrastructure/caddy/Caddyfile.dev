@@ -11,9 +11,9 @@
     reverse_proxy api-1:8080 api-2:8080 {
       lb_policy round_robin
       health_uri /health/ready
-      health_interval 10s
+      health_interval 2s
       health_timeout 2s
-      fail_duration 30s
+      fail_duration 3s
       transport http {
         dial_timeout 2s
         response_header_timeout 15s

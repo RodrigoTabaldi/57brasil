@@ -33,8 +33,20 @@ public sealed class Product
     public decimal? WidthCm { get; set; }
     public decimal? LengthCm { get; set; }
     public bool Published { get; set; }
+    public bool CatalogVisible { get; set; }
+    public string[] VehicleFamilies { get; set; } = [];
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public InventoryItem Inventory { get; set; } = null!;
+    public List<ProductImage> Images { get; set; } = [];
+}
+public sealed class ProductImage
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid ProductId { get; set; }
+    public Product Product { get; set; } = null!;
+    public required string Url { get; set; }
+    public required string AltText { get; set; }
+    public int SortOrder { get; set; }
 }
 public sealed class InventoryItem
 {

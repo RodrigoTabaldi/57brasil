@@ -1,11 +1,17 @@
-﻿export type ProductSummary = { id: string; name: string; slug: string; sku: string; price: number; brand: string; category: string; available: number };
-export type ProductDetail = ProductSummary & { manufacturerCode: string | null; shortDescription: string | null; description: string | null };
+export type ProductSummary = { id: string; name: string; slug: string; sku: string; price: number | null; brand: string | null; category: string; available: number | null; imageUrl: string | null };
+export type ProductDetail = ProductSummary & { manufacturerCode: string | null; shortDescription: string | null; description: string | null; brandSlug: string | null; categorySlug: string; weightKg: number | null; heightCm: number | null; widthCm: number | null; lengthCm: number | null; images: { id: string; url: string; altText: string }[] };
 export type ProductPage = { items: ProductSummary[]; total: number; page: number; pageSize: number };
-const baseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5000";
+export type ProductFacets = { categories: { slug: string; name: string; count: number }[]; brands: { slug: string; name: string; count: number }[] };
+const baseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5250";
 export async function getProducts(params: URLSearchParams): Promise<ProductPage> {
   const response = await fetch(`${baseUrl}/api/v1/products?${params}`, { cache: "no-store" });
   if (!response.ok) throw new Error("Não foi possível carregar o catálogo.");
   return response.json() as Promise<ProductPage>;
+}
+export async function getProductFacets(): Promise<ProductFacets> {
+  const response = await fetch(`${baseUrl}/api/v1/products/facets`, { cache: "no-store" });
+  if (!response.ok) throw new Error("Não foi possível carregar os filtros.");
+  return response.json() as Promise<ProductFacets>;
 }
 export async function getProduct(slug: string): Promise<ProductDetail | null> {
   const response = await fetch(`${baseUrl}/api/v1/products/${encodeURIComponent(slug)}`, { cache: "no-store" });

@@ -211,6 +211,13 @@ h1,h2,h3,.journey-card strong,.store-group strong,.demo-piece-content strong{fon
 .catalog-search-panel .catalog-group-filters a span{overflow-wrap:normal}
 .catalog-search-panel .catalog-filter-form{gap:10px}
 .catalog-search-panel .catalog-field-control,.catalog-search-panel .catalog-price-field select,.catalog-search-panel .catalog-filter-form button{height:44px}
+.catalog-search-panel .catalog-filter-form-real{grid-template-columns:minmax(0,1.5fr) repeat(2,minmax(150px,1fr)) auto}
+.catalog-search-panel .catalog-group-filters a small{color:var(--muted);font-variant-numeric:tabular-nums}
+.catalog-search-panel .catalog-group-filters a[aria-current=page] small{color:var(--green)}
+.catalog-search-panel .catalog-price-field select:disabled{color:var(--muted);background:#f6f7f5}
+.catalog-search-panel a:focus-visible,.catalog-search-panel button:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+@media(max-width:900px){.catalog-search-panel .catalog-filter-form-real{grid-template-columns:repeat(2,minmax(0,1fr))}.catalog-search-panel .catalog-filter-form-real button{width:100%}}
+@media(max-width:650px){.catalog-search-panel .catalog-filter-form-real{grid-template-columns:1fr}}
 .catalog-filter-footer{padding:12px 2px 0;border:0}
 @media(max-width:650px){
   .catalog-search-panel{padding:16px 14px;border-radius:14px}

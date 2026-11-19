@@ -34,3 +34,26 @@ export const demoPieces = [
 
 export const demoBrands = ["Autovia Demo", "Rodax Demo", "Pecar Demo"] as const;
 export function demoBrand(index: number) { return demoBrands[index % demoBrands.length]; }
+
+// Broad vehicle families for browsing illustrative part types, not fitment claims.
+const motoPieces = new Set([
+  "pastilha-de-freio", "amortecedor", "filtro-de-oleo", "bateria", "vela-de-ignicao",
+  "radiador", "lampada-automotiva", "pneu", "kit-de-embreagem", "disco-de-freio",
+  "filtro-de-ar", "filtro-de-combustivel", "bobina-de-ignicao", "fusivel-automotivo",
+  "rolamento-de-roda", "fluido-de-freio",
+]);
+const caminhaoPieces = new Set([
+  "pastilha-de-freio", "amortecedor", "filtro-de-oleo", "bateria", "correia-dentada",
+  "radiador", "lampada-automotiva", "pneu", "kit-de-embreagem", "palheta",
+  "bomba-dagua", "disco-de-freio", "sapata-de-freio", "filtro-de-ar",
+  "filtro-de-combustivel", "filtro-de-cabine", "bieleta", "pivo-de-suspensao",
+  "terminal-de-direcao", "alternador", "motor-de-partida", "fusivel-automotivo",
+  "rolamento-de-roda", "kit-do-amortecedor", "tambor-de-freio", "fluido-de-freio",
+]);
+
+export function demoPieceMatchesVehicle(slug: string, vehicleType?: string): boolean {
+  if (!vehicleType || vehicleType === "carro") return true;
+  if (vehicleType === "moto") return motoPieces.has(slug);
+  if (vehicleType === "caminhao") return caminhaoPieces.has(slug);
+  return false;
+}

@@ -7,8 +7,8 @@ export default async function ExplorePage({ searchParams }: Props) {
   if (tipo) redirect("/veiculo");
 
   const params = new URLSearchParams();
-  if (peca) params.set("peca", peca);
   if (q) params.set("q", q);
-  if (marcaDemo) params.set("marcaDemo", marcaDemo);
-  redirect(`/${params.size ? `?${params}` : ""}#catalogo`);
+  else if (peca) params.set("q", peca);
+  void marcaDemo;
+  redirect(`/produtos${params.size ? `?${params}` : ""}`);
 }

@@ -38,7 +38,8 @@ public sealed class CustomerFlowTests
         Assert.Equal(HttpStatusCode.OK, (await customer.GetAsync("/api/v1/products")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await customer.GetAsync("/api/v1/cart")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await Add(customer, productId, Guid.NewGuid().ToString())).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await Post(customer, "/api/v1/account/register", new { fullName = "Cliente Teste", email, phone = "11999999999", cpf = "52998224725", password = "StrongPassword1!", confirmPassword = "StrongPassword1!" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await Post(customer, "/api/v1/account/register", new { fullName = "Cliente Teste", email, phone = "+5566996308666", cpf = "52998224725", password = "StrongPassword1!", confirmPassword = "StrongPassword1!" })).StatusCode);
+        Assert.Equal("66996308666", (await customer.GetFromJsonAsync<ProfileResponse>("/api/v1/account/me"))!.PhoneNumber);
         Assert.Equal(HttpStatusCode.Conflict, (await Post(other, "/api/v1/account/register", new { fullName = "Outro Cliente", email = otherEmail, phone = "11999999998", cpf = "52998224725", password = "StrongPassword1!", confirmPassword = "StrongPassword1!" })).StatusCode);
         var key = Guid.NewGuid().ToString();
         var requests = await Task.WhenAll(Add(customer, productId, key), Add(customer, productId, key));
@@ -50,6 +51,7 @@ public sealed class CustomerFlowTests
         Assert.Equal(HttpStatusCode.Unauthorized, (await customer.GetAsync("/api/v1/cart")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await Post(customer, "/api/v1/account/login", new { email, password = "WrongPassword1!" })).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await Post(customer, "/api/v1/account/login", new { email, password = "StrongPassword1!" })).StatusCode);
+        Assert.Equal(email, (await customer.GetFromJsonAsync<ProfileResponse>("/api/v1/account/me"))!.Email);
         Assert.Single((await customer.GetFromJsonAsync<CartResponse>("/api/v1/cart"))!.Items);
         Assert.Equal(HttpStatusCode.OK, (await Post(other, "/api/v1/account/register", new { fullName = "Outro Cliente", email = otherEmail, phone = "11999999998", cpf = (string?)null, password = "StrongPassword1!", confirmPassword = "StrongPassword1!" })).StatusCode);
         Assert.Empty((await other.GetFromJsonAsync<CartResponse>("/api/v1/cart"))!.Items);
@@ -77,4 +79,5 @@ public sealed class CustomerFlowTests
     }
     sealed record CartResponse(List<CartItemResponse> Items, decimal Subtotal);
     sealed record CartItemResponse(Guid Id, int Quantity);
+    sealed record ProfileResponse(string Email, string PhoneNumber);
 }

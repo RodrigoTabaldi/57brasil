@@ -1,0 +1,314 @@
+[
+  {
+    "slug": "pastilha-de-freio",
+    "name": "Pastilha de freio",
+    "group": "Freios",
+    "description": "Componente do sistema de frenagem.",
+    "vehicleFamilies": [
+      "carro",
+      "moto",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "amortecedor",
+    "name": "Amortecedor",
+    "group": "Suspensão e direção",
+    "description": "Componente de controle da suspensão.",
+    "vehicleFamilies": [
+      "carro",
+      "moto",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "filtro-de-oleo",
+    "name": "Filtro de óleo",
+    "group": "Filtros",
+    "description": "Elemento de filtragem do lubrificante.",
+    "vehicleFamilies": [
+      "carro",
+      "moto",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "bateria",
+    "name": "Bateria automotiva",
+    "group": "Sistema elétrico",
+    "description": "Fonte de energia para o sistema elétrico.",
+    "vehicleFamilies": [
+      "carro",
+      "moto",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "vela-de-ignicao",
+    "name": "Vela de ignição",
+    "group": "Ignição",
+    "description": "Componente do sistema de ignição.",
+    "vehicleFamilies": [
+      "carro",
+      "moto"
+    ]
+  },
+  {
+    "slug": "correia-dentada",
+    "name": "Correia dentada",
+    "group": "Motor",
+    "description": "Componente de sincronização do motor.",
+    "vehicleFamilies": [
+      "carro",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "radiador",
+    "name": "Radiador",
+    "group": "Arrefecimento",
+    "description": "Componente de troca térmica.",
+    "vehicleFamilies": [
+      "carro",
+      "moto",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "lampada-automotiva",
+    "name": "Lâmpada automotiva",
+    "group": "Iluminação",
+    "description": "Componente de iluminação do veículo.",
+    "vehicleFamilies": [
+      "carro",
+      "moto",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "pneu",
+    "name": "Pneu",
+    "group": "Pneus e rodas",
+    "description": "Componente de contato com o solo.",
+    "vehicleFamilies": [
+      "carro",
+      "moto",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "kit-de-embreagem",
+    "name": "Kit de embreagem",
+    "group": "Transmissão e câmbio",
+    "description": "Conjunto do sistema de transmissão.",
+    "vehicleFamilies": [
+      "carro",
+      "moto",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "palheta",
+    "name": "Palheta do limpador",
+    "group": "Acessórios automotivos",
+    "description": "Componente de limpeza do para-brisa.",
+    "vehicleFamilies": [
+      "carro",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "bomba-dagua",
+    "name": "Bomba d'água",
+    "group": "Arrefecimento",
+    "description": "Componente de circulação do líquido de arrefecimento.",
+    "vehicleFamilies": [
+      "carro",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "disco-de-freio",
+    "name": "Disco de freio",
+    "group": "Freios",
+    "description": "Componente do conjunto de frenagem.",
+    "vehicleFamilies": [
+      "carro",
+      "moto",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "sapata-de-freio",
+    "name": "Sapata de freio",
+    "group": "Freios",
+    "description": "Componente de freio a tambor.",
+    "vehicleFamilies": [
+      "carro",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "filtro-de-ar",
+    "name": "Filtro de ar do motor",
+    "group": "Filtros",
+    "description": "Elemento de filtragem do ar de admissão.",
+    "vehicleFamilies": [
+      "carro",
+      "moto",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "filtro-de-combustivel",
+    "name": "Filtro de combustível",
+    "group": "Filtros",
+    "description": "Elemento de filtragem do combustível.",
+    "vehicleFamilies": [
+      "carro",
+      "moto",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "filtro-de-cabine",
+    "name": "Filtro de cabine",
+    "group": "Filtros",
+    "description": "Elemento de filtragem do ar da cabine.",
+    "vehicleFamilies": [
+      "carro",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "bieleta",
+    "name": "Bieleta",
+    "group": "Suspensão e direção",
+    "description": "Componente de ligação da barra estabilizadora.",
+    "vehicleFamilies": [
+      "carro",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "pivo-de-suspensao",
+    "name": "Pivô de suspensão",
+    "group": "Suspensão e direção",
+    "description": "Articulação do sistema de suspensão.",
+    "vehicleFamilies": [
+      "carro",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "terminal-de-direcao",
+    "name": "Terminal de direção",
+    "group": "Suspensão e direção",
+    "description": "Articulação do sistema de direção.",
+    "vehicleFamilies": [
+      "carro",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "bobina-de-ignicao",
+    "name": "Bobina de ignição",
+    "group": "Ignição",
+    "description": "Componente do sistema de ignição.",
+    "vehicleFamilies": [
+      "carro",
+      "moto"
+    ]
+  },
+  {
+    "slug": "cabo-de-vela",
+    "name": "Cabo de vela",
+    "group": "Ignição",
+    "description": "Conduz energia no sistema de ignição.",
+    "vehicleFamilies": [
+      "carro"
+    ]
+  },
+  {
+    "slug": "tensor-da-correia",
+    "name": "Tensor da correia",
+    "group": "Motor",
+    "description": "Componente de tensionamento da correia.",
+    "vehicleFamilies": [
+      "carro"
+    ]
+  },
+  {
+    "slug": "alternador",
+    "name": "Alternador",
+    "group": "Sistema elétrico",
+    "description": "Componente de geração elétrica do veículo.",
+    "vehicleFamilies": [
+      "carro",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "motor-de-partida",
+    "name": "Motor de partida",
+    "group": "Sistema elétrico",
+    "description": "Componente de acionamento da partida.",
+    "vehicleFamilies": [
+      "carro",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "fusivel-automotivo",
+    "name": "Fusível automotivo",
+    "group": "Sistema elétrico",
+    "description": "Proteção de circuitos elétricos.",
+    "vehicleFamilies": [
+      "carro",
+      "moto",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "rolamento-de-roda",
+    "name": "Rolamento de roda",
+    "group": "Pneus e rodas",
+    "description": "Componente de rotação da roda.",
+    "vehicleFamilies": [
+      "carro",
+      "moto",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "kit-do-amortecedor",
+    "name": "Kit do amortecedor",
+    "group": "Suspensão e direção",
+    "description": "Conjunto de componentes do amortecedor.",
+    "vehicleFamilies": [
+      "carro",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "tambor-de-freio",
+    "name": "Tambor de freio",
+    "group": "Freios",
+    "description": "Componente de freio a tambor.",
+    "vehicleFamilies": [
+      "carro",
+      "caminhao"
+    ]
+  },
+  {
+    "slug": "fluido-de-freio",
+    "name": "Fluido de freio",
+    "group": "Freios",
+    "description": "Fluido do sistema hidráulico de freios.",
+    "vehicleFamilies": [
+      "carro",
+      "moto",
+      "caminhao"
+    ]
+  }
+]
