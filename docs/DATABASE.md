@@ -6,6 +6,8 @@ Nos arquivos Compose, o serviço único `migrate` aplica migrations antes de ini
 
 Os testes de integração requerem PostgreSQL descartável em `BRASIL57_TEST_DATABASE` e rodam com `dotnet test backend/tests/Brasil57.IntegrationTests/Brasil57.IntegrationTests.csproj`. Eles executam migrations e deixam dados no banco informado; nunca use banco de produção. Verificam reserva concorrente, replay, cancelamento, confirmação com valor/moeda incorretos e corretos, consumo da inbox pelo worker com provedor falso, rejeição/deduplicação do webhook e filtros/facetas do catálogo executados no banco.
 
-Para gerar novas migrations, instale temporariamente `Microsoft.EntityFrameworkCore.Design` no projeto API e use `dotnet ef migrations add Nome --project backend/src/Brasil57.Infrastructure --startup-project backend/src/Brasil57.Api`. O pacote de design foi removido do build padrão porque seu grafo de dependências apresentava avisos de segurança em `System.Security.Cryptography.Pkcs` no cache disponível nesta sessão.
+`ProductSourceReferences` acrescenta referências textuais aos documentos físicos de preço, estoque e aplicação veicular. A API exige as referências relevantes para publicar uma oferta e registra um retrato delas na auditoria administrativa. Ajustes de estoque exigem referência do documento da operação. Como produtos publicados antes dessa migration não possuem evidência registrada, a migration os torna rascunhos visíveis no catálogo, sem anunciar preço ou estoque. Revise e registre as fontes antes de republicá-los.
+
+Para gerar novas migrations, use `dotnet ef migrations add Nome --project backend/src/Brasil57.Infrastructure --startup-project backend/src/Brasil57.Api`. O pacote `Microsoft.EntityFrameworkCore.Design` já está no projeto API com `PrivateAssets="all"`.
 
 

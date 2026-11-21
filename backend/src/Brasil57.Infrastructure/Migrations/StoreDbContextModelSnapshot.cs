@@ -47,6 +47,9 @@ namespace Brasil57.Infrastructure.Migrations
                     b.Property<Guid>("EntityId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("EvidenceSnapshot")
+                        .HasColumnType("jsonb");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedAt");
@@ -480,6 +483,10 @@ namespace Brasil57.Infrastructure.Migrations
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CompatibilitySourceReference")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -507,6 +514,10 @@ namespace Brasil57.Infrastructure.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
 
+                    b.Property<string>("PriceSourceReference")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<bool>("Published")
                         .HasColumnType("boolean");
 
@@ -522,6 +533,10 @@ namespace Brasil57.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(180)
                         .HasColumnType("character varying(180)");
+
+                    b.Property<string>("StockSourceReference")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.PrimitiveCollection<string[]>("VehicleFamilies")
                         .IsRequired()

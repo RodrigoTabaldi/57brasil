@@ -40,6 +40,11 @@ public sealed class Worker(IServiceScopeFactory scopes, PaymentNotificationQueue
             {
                 var payment = await provider.GetPaymentAsync(notification.PaymentId, ct);
                 var outcome = await new OrderReservationService(db).ConfirmPaymentAsync(payment, ct);
+                if (outcome == ConfirmPaymentOutcome.NotApproved)
+                {
+                    await ScheduleRetryAsync(db, notification.Id, notification.Attempts, outcome.ToString(), ct);
+                    continue;
+                }
                 await db.PaymentNotifications.Where(x => x.Id == notification.Id)
                     .ExecuteUpdateAsync(s => s.SetProperty(x => x.ProcessedAt, DateTimeOffset.UtcNow)
                         .SetProperty(x => x.LeaseUntil, (DateTimeOffset?)null)
@@ -51,13 +56,19 @@ public sealed class Worker(IServiceScopeFactory scopes, PaymentNotificationQueue
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
             catch (Exception exception)
             {
-                var delay = TimeSpan.FromSeconds(Math.Min(300, 1 << Math.Min(notification.Attempts + 1, 8)));
-                await db.PaymentNotifications.Where(x => x.Id == notification.Id)
-                    .ExecuteUpdateAsync(s => s.SetProperty(x => x.LeaseUntil, (DateTimeOffset?)null)
-                        .SetProperty(x => x.NextAttemptAt, DateTimeOffset.UtcNow.Add(delay))
-                        .SetProperty(x => x.Attempts, x => x.Attempts + 1), ct);
+                await ScheduleRetryAsync(db, notification.Id, notification.Attempts, "ProviderError", ct);
                 logger.LogWarning(exception, "Falha ao processar pagamento {PaymentId}; nova tentativa agendada.", notification.PaymentId);
             }
         }
+    }
+
+    private static Task ScheduleRetryAsync(StoreDbContext db, Guid id, int attempts, string outcome, CancellationToken ct)
+    {
+        var delay = TimeSpan.FromSeconds(Math.Min(300, 1 << Math.Min(attempts + 1, 8)));
+        return db.PaymentNotifications.Where(x => x.Id == id && x.ProcessedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.LeaseUntil, (DateTimeOffset?)null)
+                .SetProperty(x => x.NextAttemptAt, DateTimeOffset.UtcNow.Add(delay))
+                .SetProperty(x => x.Outcome, outcome)
+                .SetProperty(x => x.Attempts, x => x.Attempts + 1), ct);
     }
 }
