@@ -1,0 +1,78 @@
+name: Verify
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: brasil57
+          POSTGRES_PASSWORD: verification-only
+          POSTGRES_DB: brasil57
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U brasil57 -d brasil57"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 16379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      rabbitmq:
+        image: rabbitmq:4-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: brasil57
+          RABBITMQ_DEFAULT_PASS: verification-only
+        ports:
+          - 15673:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 10s
+          --health-retries 12
+    env:
+      BRASIL57_TEST_DATABASE: Host=127.0.0.1;Port=5432;Database=brasil57;Username=brasil57;Password=verification-only
+      BRASIL57_TEST_REDIS_PASSWORD: verification-only
+      BRASIL57_TEST_RABBIT_PASSWORD: verification-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: docker exec "${{ job.services.redis.id }}" redis-cli CONFIG SET requirepass verification-only
+      - run: docker compose --env-file .env.production.example -f compose.production.yaml config --quiet
+      - run: dotnet build backend/src/Brasil57.Api/Brasil57.Api.csproj --configuration Release
+      - run: dotnet test backend/tests/Brasil57.UnitTests/Brasil57.UnitTests.csproj --configuration Release
+      - run: dotnet test backend/tests/Brasil57.IntegrationTests/Brasil57.IntegrationTests.csproj --configuration Release
+
+  storefront:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/storefront
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/storefront/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build

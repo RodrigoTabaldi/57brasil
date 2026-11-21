@@ -45,9 +45,15 @@ public static partial class AdminEndpoints
         });
         protectedAdmin.MapPost("/products", async (HttpContext context, AdminProduct input, StoreDbContext db, CancellationToken ct) => {
             if (!SameOrigin(context)) return Results.StatusCode(403);
-            if (!ValidName(input.Name) || !ValidSlug(input.Slug, 180) || string.IsNullOrWhiteSpace(input.Sku) || input.Sku.Trim().Length > 80 || input.Price is < 0 or > 9999999999.99m || input.Stock < 0 || input.WeightKg is < 0 or > 999999 || input.HeightCm is < 0 or > 999999 || input.WidthCm is < 0 or > 999999 || input.LengthCm is < 0 or > 999999 || (input.Published && (input.Price <= 0 || input.WeightKg is null or <= 0 || input.HeightCm is null or <= 0 || input.WidthCm is null or <= 0 || input.LengthCm is null or <= 0))) return Results.BadRequest();
+            if (!ValidName(input.Name) || !ValidSlug(input.Slug, 180) || string.IsNullOrWhiteSpace(input.Sku) || input.Sku.Trim().Length > 80 || input.Price is < 0 or > 9999999999.99m || input.Stock < 0 || input.WeightKg is < 0 or > 999999 || input.HeightCm is < 0 or > 999999 || input.WidthCm is < 0 or > 999999 || input.LengthCm is < 0 or > 999999) return Results.BadRequest();
             if (input.VehicleFamilies?.Any(x => x is not ("carro" or "moto" or "caminhao")) == true) return Results.BadRequest();
             var product = new Product { Name = input.Name.Trim(), Slug = input.Slug.Trim(), Sku = input.Sku.Trim(), CategoryId = input.CategoryId, BrandId = input.BrandId, Price = input.Price, WeightKg = input.WeightKg, HeightCm = input.HeightCm, WidthCm = input.WidthCm, LengthCm = input.LengthCm, Published = input.Published, VehicleFamilies = input.VehicleFamilies?.Distinct().ToArray() ?? [], Inventory = new InventoryItem { OnHand = input.Stock } };
+            if (product.Published)
+            {
+                var brandSlug = await db.Brands.Where(x => x.Id == product.BrandId).Select(x => x.Slug).FirstOrDefaultAsync(ct);
+                if (brandSlug is null || !ProductPublicationPolicy.CanPublish(product, brandSlug))
+                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["product"] = ["Cadastre preço, marca real, peso e dimensões antes de publicar a venda."] });
+            }
             db.Products.Add(product);
             Audit(db, context, "create", "product", product.Id);
             try { await db.SaveChangesAsync(ct); } catch (DbUpdateException) { return Results.Conflict(new { message = "SKU ou slug duplicado, ou categoria e marca inválidas." }); }
@@ -87,7 +93,7 @@ public static partial class AdminEndpoints
             if (input.HeightCm is not null) product.HeightCm = input.HeightCm;
             if (input.WidthCm is not null) product.WidthCm = input.WidthCm;
             if (input.LengthCm is not null) product.LengthCm = input.LengthCm;
-            if (input.Published == true && (product.Price <= 0 || product.Brand.Slug == "marca-a-confirmar" || product.WeightKg is null or <= 0 || product.HeightCm is null or <= 0 || product.WidthCm is null or <= 0 || product.LengthCm is null or <= 0))
+            if ((input.Published ?? product.Published) && !ProductPublicationPolicy.CanPublish(product, product.Brand.Slug))
                 return Results.ValidationProblem(new Dictionary<string, string[]> { ["product"] = ["Cadastre preço, marca real, peso e dimensões antes de publicar a venda."] });
             if (input.Published is not null) product.Published = input.Published.Value;
             Audit(db, context, "update", "product", product.Id);

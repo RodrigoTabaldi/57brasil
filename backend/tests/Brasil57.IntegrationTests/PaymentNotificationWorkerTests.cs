@@ -12,6 +12,47 @@ namespace Brasil57.IntegrationTests;
 public sealed class PaymentNotificationWorkerTests
 {
     [Fact]
+    public async Task Pending_provider_status_remains_due_for_reconciliation()
+    {
+        var connection = Environment.GetEnvironmentVariable("BRASIL57_TEST_DATABASE")
+            ?? throw new InvalidOperationException("Defina BRASIL57_TEST_DATABASE para um PostgreSQL descartável.");
+        var options = new DbContextOptionsBuilder<StoreDbContext>().UseNpgsql(connection).Options;
+        var paymentId = Random.Shared.NextInt64(1_000_000_000, 9_000_000_000).ToString();
+        var notification = new PaymentNotification { RequestId = Guid.NewGuid().ToString("N"), PaymentId = paymentId };
+        await using (var setup = new StoreDbContext(options))
+        {
+            await setup.Database.MigrateAsync();
+            setup.PaymentNotifications.Add(notification);
+            await setup.SaveChangesAsync();
+        }
+
+        using var services = new ServiceCollection()
+            .AddDbContext<StoreDbContext>(o => o.UseNpgsql(connection))
+            .AddSingleton<IPaymentProvider>(new FakePaymentProvider(new PaymentResult(paymentId, Guid.NewGuid().ToString(), 15m, "BRL", "pending")))
+            .BuildServiceProvider();
+        using var worker = new PaymentWorker(services.GetRequiredService<IServiceScopeFactory>(), new PaymentNotificationQueue(null, null), NullLogger<PaymentWorker>.Instance);
+        await worker.StartAsync(CancellationToken.None);
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            while (!timeout.IsCancellationRequested)
+            {
+                await using var db = new StoreDbContext(options);
+                if (await db.PaymentNotifications.AnyAsync(x => x.Id == notification.Id && x.Attempts > 0, timeout.Token)) break;
+                await Task.Delay(100, timeout.Token);
+            }
+        }
+        finally { await worker.StopAsync(CancellationToken.None); }
+
+        await using var verify = new StoreDbContext(options);
+        var result = await verify.PaymentNotifications.AsNoTracking().SingleAsync(x => x.Id == notification.Id);
+        Assert.Null(result.ProcessedAt);
+        Assert.Equal("NotApproved", result.Outcome);
+        Assert.True(result.Attempts >= 1);
+        Assert.True(result.NextAttemptAt > result.ReceivedAt);
+    }
+
+    [Fact]
     public async Task Worker_confirms_inbox_payment_once()
     {
         var connection = Environment.GetEnvironmentVariable("BRASIL57_TEST_DATABASE")
