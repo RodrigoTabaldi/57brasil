@@ -50,7 +50,8 @@ public sealed class AdminProductPublishingTests
         Assert.Equal(HttpStatusCode.NoContent, (await Send(client, HttpMethod.Post, "/api/v1/admin/session", new { email = adminEmail, password = "StrongPassword1!" })).StatusCode);
         var sku = $"PUBLISH-{Guid.NewGuid():N}";
         object Input(Guid brandId) => new { name = "Peça verificada", slug = sku.ToLowerInvariant(), sku, categoryId, brandId,
-            price = 10m, stock = 1, published = true, weightKg = 1m, heightCm = 1m, widthCm = 1m, lengthCm = 1m };
+            price = 10m, stock = 1, published = true, weightKg = 1m, heightCm = 1m, widthCm = 1m, lengthCm = 1m,
+            priceSourceReference = "Tabela de preços 4", stockSourceReference = "Nota fiscal 123" };
         Assert.Equal(HttpStatusCode.BadRequest, (await Send(client, HttpMethod.Post, "/api/v1/admin/products", Input(placeholderBrandId))).StatusCode);
         Assert.Equal(HttpStatusCode.Created, (await Send(client, HttpMethod.Post, "/api/v1/admin/products", Input(realBrandId))).StatusCode);
 
@@ -60,6 +61,12 @@ public sealed class AdminProductPublishingTests
         var path = $"/api/v1/admin/products/{product.Id}";
         Assert.Equal(HttpStatusCode.BadRequest, (await Send(client, HttpMethod.Patch, path, new { price = 0m })).StatusCode);
         Assert.Equal(10m, await verifyDb.Products.Where(x => x.Id == product.Id).Select(x => x.Price).SingleAsync());
+        Assert.Equal(HttpStatusCode.BadRequest, (await Send(client, HttpMethod.Patch, path, new { price = 12m })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await Send(client, HttpMethod.Patch, path, new { price = 12m, priceSourceReference = "Tabela de preços 5" })).StatusCode);
+        Assert.Equal(12m, await verifyDb.Products.Where(x => x.Id == product.Id).Select(x => x.Price).SingleAsync());
+        Assert.Equal(HttpStatusCode.BadRequest, (await Send(client, HttpMethod.Post, $"/api/v1/admin/inventory/{product.Id}/adjustments", new { delta = 1 })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await Send(client, HttpMethod.Post, $"/api/v1/admin/inventory/{product.Id}/adjustments", new { delta = 1, sourceReference = "Nota fiscal 124" })).StatusCode);
+        Assert.Contains("Nota fiscal 124", (await verifyDb.AuditLogs.AsNoTracking().Where(x => x.EntityId == product.Id && x.Action.StartsWith("stock_adjust_")).OrderByDescending(x => x.CreatedAt).Select(x => x.EvidenceSnapshot).FirstAsync())!);
         Assert.Equal(HttpStatusCode.NoContent, (await Send(client, HttpMethod.Patch, path, new { price = 0m, published = false })).StatusCode);
         Assert.False(await verifyDb.Products.Where(x => x.Id == product.Id).Select(x => x.Published).SingleAsync());
     }

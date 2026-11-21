@@ -6,5 +6,6 @@ public sealed class AuditLog
     public required string Action { get; set; }
     public required string Entity { get; set; }
     public Guid EntityId { get; set; }
+    public string? EvidenceSnapshot { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }

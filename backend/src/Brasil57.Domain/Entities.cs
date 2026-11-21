@@ -28,6 +28,9 @@ public sealed class Product
     public Guid BrandId { get; set; }
     public Brand Brand { get; set; } = null!;
     public decimal Price { get; set; }
+    public string? PriceSourceReference { get; set; }
+    public string? StockSourceReference { get; set; }
+    public string? CompatibilitySourceReference { get; set; }
     public decimal? WeightKg { get; set; }
     public decimal? HeightCm { get; set; }
     public decimal? WidthCm { get; set; }

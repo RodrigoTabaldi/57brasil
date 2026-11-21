@@ -12,6 +12,41 @@ namespace Brasil57.IntegrationTests;
 public sealed class CatalogFiltersTests
 {
     [Fact]
+    public async Task Vehicle_application_is_hidden_until_its_document_is_recorded()
+    {
+        var connection = Environment.GetEnvironmentVariable("BRASIL57_TEST_DATABASE")
+            ?? throw new InvalidOperationException("Defina BRASIL57_TEST_DATABASE para um PostgreSQL descartável.");
+        var options = new DbContextOptionsBuilder<StoreDbContext>().UseNpgsql(connection).Options;
+        var suffix = Guid.NewGuid().ToString("N");
+        var vehicle = new VehicleVersion { Name = "Versão teste", StartYear = 2020, EndYear = 2022,
+            Model = new VehicleModel { Name = "Modelo teste", Make = new VehicleMake { Name = $"Marca teste {suffix}" } } };
+        var product = new Product { Name = "Peça teste", Slug = $"application-{suffix}", Sku = $"APP-{suffix}",
+            Category = new Category { Name = "Teste", Slug = $"category-{suffix}" },
+            Brand = new Brand { Name = "Teste", Slug = $"brand-{suffix}" }, Price = 10m, Published = true,
+            PriceSourceReference = "Tabela preço 4", StockSourceReference = "Nota fiscal 123",
+            Inventory = new InventoryItem { OnHand = 1 } };
+        await using (var setup = new StoreDbContext(options))
+        {
+            await setup.Database.MigrateAsync();
+            setup.Products.Add(product);
+            setup.ProductApplications.Add(new ProductApplication { Product = product, VehicleVersion = vehicle, StartYear = 2020, EndYear = 2022 });
+            await setup.SaveChangesAsync();
+        }
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => {
+            builder.UseSetting("ConnectionStrings:Default", connection);
+            builder.UseSetting("DataProtection:KeyPath", Path.Combine(Path.GetTempPath(), $"brasil57-application-{suffix}"));
+        });
+        using var client = factory.CreateClient();
+        Assert.Empty((await client.GetFromJsonAsync<List<object>>($"/api/v1/products/{product.Slug}/applications"))!);
+        Assert.Equal(0, (await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?vehicleVersion={vehicle.Id}&category={product.Category.Slug}"))!.Total);
+
+        await using (var db = new StoreDbContext(options))
+            await db.Products.Where(x => x.Id == product.Id).ExecuteUpdateAsync(s => s.SetProperty(x => x.CompatibilitySourceReference, "Catálogo fabricante 5"));
+        Assert.Single((await client.GetFromJsonAsync<List<object>>($"/api/v1/products/{product.Slug}/applications"))!);
+        Assert.Equal(1, (await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?vehicleVersion={vehicle.Id}&category={product.Category.Slug}"))!.Total);
+    }
+
+    [Fact]
     public async Task Price_stock_and_facets_use_the_same_database_filters()
     {
         var connection = Environment.GetEnvironmentVariable("BRASIL57_TEST_DATABASE")

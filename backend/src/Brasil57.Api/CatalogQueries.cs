@@ -34,7 +34,7 @@ internal static class CatalogQueries
             query = query.Where(x => x.VehicleFamilies.Contains(vehicleType) || legacyCategories.Contains(x.Category.Slug));
         }
         if (!string.IsNullOrWhiteSpace(brand)) query = query.Where(x => x.Brand.Slug == brand);
-        if (vehicleVersion is not null) query = query.Where(x => db.ProductApplications.Any(a => a.ProductId == x.Id && a.VehicleVersionId == vehicleVersion && (year == null || (a.StartYear <= year && a.EndYear >= year))));
+        if (vehicleVersion is not null) query = query.Where(x => x.CompatibilitySourceReference != null && db.ProductApplications.Any(a => a.ProductId == x.Id && a.VehicleVersionId == vehicleVersion && (year == null || (a.StartYear <= year && a.EndYear >= year))));
         if (minPrice is not null) query = query.Where(x => x.Published && x.Price >= minPrice);
         if (maxPrice is not null) query = query.Where(x => x.Published && x.Price <= maxPrice);
         if (availableOnly == true) query = query.Where(x => x.Published && x.Inventory.OnHand > x.Inventory.Reserved);
