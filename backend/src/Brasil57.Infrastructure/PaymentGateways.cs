@@ -8,11 +8,6 @@ public sealed class StripePaymentGateway : UnconfiguredPaymentGateway
     public override string Provider => "stripe";
 }
 
-public sealed class AbacatePayPaymentGateway : UnconfiguredPaymentGateway
-{
-    public override string Provider => "abacatepay";
-}
-
 public abstract class UnconfiguredPaymentGateway : IPaymentGateway
 {
     public abstract string Provider { get; }

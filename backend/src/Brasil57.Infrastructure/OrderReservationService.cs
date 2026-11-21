@@ -24,8 +24,10 @@ public sealed class OrderReservationService(StoreDbContext db)
             return ConfirmPaymentOutcome.Mismatch;
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var order = await db.Orders.AsNoTracking().Where(x => x.Id == orderId)
-            .Select(x => new { x.Id, x.Status, x.ProviderPaymentId, x.ItemsTotal, x.ShippingTotal }).FirstOrDefaultAsync(ct);
+            .Select(x => new { x.Id, x.CartId, x.Status, x.ProviderPaymentId, x.ItemsTotal, x.ShippingTotal }).FirstOrDefaultAsync(ct);
         if (order is null || payment.Amount != order.ItemsTotal + order.ShippingTotal) return ConfirmPaymentOutcome.Mismatch;
+        var ownerId = await db.Carts.Where(x => x.Id == order.CartId).Select(x => x.UserId).FirstOrDefaultAsync(ct);
+        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtext({(ownerId ?? order.CartId).ToString()}))", ct);
         if (order.Status == OrderStatus.Paid) return order.ProviderPaymentId == payment.ProviderPaymentId
             ? ConfirmPaymentOutcome.Replayed : ConfirmPaymentOutcome.ConflictingPayment;
         if (order.Status != OrderStatus.AwaitingPayment) return ConfirmPaymentOutcome.ConflictingPayment;
@@ -49,6 +51,7 @@ public sealed class OrderReservationService(StoreDbContext db)
                     .SetProperty(x => x.OnHand, x => x.OnHand - item.Quantity), ct);
             if (committed != 1) throw new InvalidOperationException("Reserva inconsistente para pagamento aprovado.");
         }
+        await db.CartItems.Where(x => x.CartId == order.CartId).ExecuteDeleteAsync(ct);
         await transaction.CommitAsync(ct);
         return ConfirmPaymentOutcome.Confirmed;
     }
@@ -86,6 +89,14 @@ public sealed class OrderReservationService(StoreDbContext db)
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         try
         {
+            var ownerId = await db.Carts.Where(x => x.Id == cartId).Select(x => x.UserId).FirstOrDefaultAsync(ct);
+            await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtext({(ownerId ?? cartId).ToString()}))", ct);
+            var concurrent = await db.Orders.AsNoTracking().Where(x => x.IdempotencyKey == idempotencyKey)
+                .Select(x => new { x.Id, x.RequestHash }).FirstOrDefaultAsync(ct);
+            if (concurrent is not null) return concurrent.RequestHash == requestHash
+                ? new(ReserveOrderOutcome.Replayed, concurrent.Id) : new(ReserveOrderOutcome.Conflict, null);
+            if (await db.Orders.AnyAsync(x => x.CartId == cartId && x.Status == OrderStatus.AwaitingPayment, ct))
+                return new(ReserveOrderOutcome.Conflict, null);
             var cart = await db.Carts.AsNoTracking().Where(x => x.Id == cartId && x.ExpiresAt > DateTimeOffset.UtcNow)
                 .Select(x => new { Items = x.Items.Select(i => new { i.ProductId, i.Quantity, i.Product.Sku, i.Product.Name, i.Product.Price, i.Product.Published }).ToList() })
                 .FirstOrDefaultAsync(ct);

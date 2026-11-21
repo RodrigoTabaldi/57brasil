@@ -191,6 +191,66 @@ namespace Brasil57.Infrastructure.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("Brasil57.Domain.CustomerAddress", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Cep")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Complement")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Neighborhood")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)");
+
+                    b.Property<string>("Recipient")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)");
+
+                    b.Property<string>("Street")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("CustomerAddresses");
+                });
+
             modelBuilder.Entity("Brasil57.Domain.InventoryItem", b =>
                 {
                     b.Property<Guid>("ProductId")
@@ -260,7 +320,8 @@ namespace Brasil57.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CartId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 'AwaitingPayment'");
 
                     b.HasIndex("IdempotencyKey")
                         .IsUnique();
@@ -352,6 +413,14 @@ namespace Brasil57.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
+
+                    b.Property<string>("PixCode")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("PixQrCode")
+                        .HasMaxLength(100000)
+                        .HasColumnType("character varying(100000)");
 
                     b.Property<string>("Provider")
                         .IsRequired()
@@ -480,6 +549,13 @@ namespace Brasil57.Infrastructure.Migrations
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CommercialSource")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateOnly?>("CommercialVerifiedOn")
+                        .HasColumnType("date");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -552,6 +628,8 @@ namespace Brasil57.Infrastructure.Migrations
                     b.ToTable("Products", t =>
                         {
                             t.HasCheckConstraint("ck_product_price", "\"Price\" >= 0");
+
+                            t.HasCheckConstraint("ck_published_source", "NOT \"Published\" OR (\"CommercialSource\" IS NOT NULL AND length(trim(\"CommercialSource\")) >= 5 AND \"CommercialVerifiedOn\" IS NOT NULL)");
                         });
                 });
 
@@ -932,6 +1010,15 @@ namespace Brasil57.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("Brasil57.Domain.CustomerAddress", b =>
+                {
+                    b.HasOne("Brasil57.Infrastructure.StoreUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Brasil57.Domain.InventoryItem", b =>

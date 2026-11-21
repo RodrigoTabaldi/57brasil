@@ -21,7 +21,7 @@ public sealed class OrderReservationTests
 
         var category = new Category { Name = "Teste", Slug = $"teste-{Guid.NewGuid():N}" };
         var brand = new Brand { Name = "Teste", Slug = $"teste-{Guid.NewGuid():N}" };
-        var product = new Product { Name = "Peça de teste", Slug = $"teste-{Guid.NewGuid():N}", Sku = $"TEST-{Guid.NewGuid():N}", Category = category, Brand = brand, Price = 10m, Published = true, Inventory = new InventoryItem { OnHand = 1 } };
+        var product = new Product { Name = "Peça de teste", Slug = $"teste-{Guid.NewGuid():N}", Sku = $"TEST-{Guid.NewGuid():N}", Category = category, Brand = brand, Price = 10m, Published = true, CommercialSource = "Integration test fixture", CommercialVerifiedOn = new DateOnly(2026, 11, 18), Inventory = new InventoryItem { OnHand = 1 } };
         var firstCart = new Cart { Items = [new CartItem { Product = product, Quantity = 1 }] };
         var secondCart = new Cart { Items = [new CartItem { Product = product, Quantity = 1 }] };
         await using (var setup = new StoreDbContext(options))
@@ -86,5 +86,15 @@ public sealed class OrderReservationTests
         }
         Assert.Equal(0, await verify.Inventory.Where(x => x.ProductId == product.Id).Select(x => x.Reserved).SingleAsync());
         Assert.Equal(0, await verify.Inventory.Where(x => x.ProductId == product.Id).Select(x => x.OnHand).SingleAsync());
+        Assert.Empty(await verify.CartItems.Where(x => x.CartId == nextCart.Id).ToListAsync());
+        await using (var refill = new StoreDbContext(options))
+        {
+            await refill.Inventory.Where(x => x.ProductId == product.Id).ExecuteUpdateAsync(x => x.SetProperty(i => i.OnHand, 1));
+            refill.CartItems.Add(new CartItem { CartId = nextCart.Id, ProductId = product.Id, Quantity = 1 });
+            await refill.SaveChangesAsync();
+        }
+        var repeat = await Reserve(nextCart.Id, Guid.NewGuid().ToString("N"));
+        Assert.Equal(ReserveOrderOutcome.Created, repeat.Outcome);
+        Assert.Equal(2, await verify.Orders.CountAsync(x => x.CartId == nextCart.Id));
     }
 }

@@ -17,7 +17,7 @@ public sealed class PaymentNotificationWorkerTests
         var connection = Environment.GetEnvironmentVariable("BRASIL57_TEST_DATABASE")
             ?? throw new InvalidOperationException("Defina BRASIL57_TEST_DATABASE para um PostgreSQL descartável.");
         var options = new DbContextOptionsBuilder<StoreDbContext>().UseNpgsql(connection).Options;
-        var product = new Product { Name = "Peça de teste", Slug = $"teste-{Guid.NewGuid():N}", Sku = $"TEST-{Guid.NewGuid():N}", Category = new Category { Name = "Teste", Slug = $"teste-{Guid.NewGuid():N}" }, Brand = new Brand { Name = "Teste", Slug = $"teste-{Guid.NewGuid():N}" }, Price = 10m, Published = true, Inventory = new InventoryItem { OnHand = 1, Reserved = 1 } };
+        var product = new Product { Name = "Peça de teste", Slug = $"teste-{Guid.NewGuid():N}", Sku = $"TEST-{Guid.NewGuid():N}", Category = new Category { Name = "Teste", Slug = $"teste-{Guid.NewGuid():N}" }, Brand = new Brand { Name = "Teste", Slug = $"teste-{Guid.NewGuid():N}" }, Price = 10m, Published = true, CommercialSource = "Integration test fixture", CommercialVerifiedOn = new DateOnly(2026, 11, 18), Inventory = new InventoryItem { OnHand = 1, Reserved = 1 } };
         var order = new Order { CartId = Guid.NewGuid(), IdempotencyKey = Guid.NewGuid().ToString("N"), RequestHash = new string('A', 64), BuyerEmail = "buyer@example.com", ItemsTotal = 10m, ShippingTotal = 5m,
             Items = [new OrderItem { ProductId = product.Id, Sku = product.Sku, Name = product.Name, Quantity = 1, UnitPrice = 10m }] };
         var paymentId = Random.Shared.NextInt64(1_000_000_000, 9_000_000_000).ToString();

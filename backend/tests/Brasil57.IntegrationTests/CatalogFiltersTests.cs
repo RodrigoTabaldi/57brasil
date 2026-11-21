@@ -19,13 +19,18 @@ public sealed class CatalogFiltersTests
         var options = new DbContextOptionsBuilder<StoreDbContext>().UseNpgsql(connection).Options;
         var category = new Category { Name = "Teste", Slug = $"teste-{Guid.NewGuid():N}" };
         var brand = new Brand { Name = "Teste", Slug = $"teste-{Guid.NewGuid():N}" };
-        var available = new Product { Name = "Peça disponível", Slug = $"teste-{Guid.NewGuid():N}", Sku = $"TEST-{Guid.NewGuid():N}", Category = category, Brand = brand, Price = 10m, Published = true, Inventory = new InventoryItem { OnHand = 1 } };
-        var unavailable = new Product { Name = "Peça indisponível", Slug = $"teste-{Guid.NewGuid():N}", Sku = $"TEST-{Guid.NewGuid():N}", Category = category, Brand = brand, Price = 20m, Published = true, Inventory = new InventoryItem { OnHand = 0 } };
+        var available = new Product { Name = "Peça disponível", Slug = $"teste-{Guid.NewGuid():N}", Sku = $"TEST-{Guid.NewGuid():N}", Category = category, Brand = brand, Price = 10m, Published = true, CommercialSource = "Integration test fixture", CommercialVerifiedOn = new DateOnly(2026, 11, 18), Inventory = new InventoryItem { OnHand = 1 } };
+        var unavailable = new Product { Name = "Peça indisponível", Slug = $"teste-{Guid.NewGuid():N}", Sku = $"TEST-{Guid.NewGuid():N}", Category = category, Brand = brand, Price = 20m, Published = true, CommercialSource = "Integration test fixture", CommercialVerifiedOn = new DateOnly(2026, 11, 18), Inventory = new InventoryItem { OnHand = 0 } };
         await using (var setup = new StoreDbContext(options))
         {
             await setup.Database.MigrateAsync();
             setup.Products.AddRange(available, unavailable);
             await setup.SaveChangesAsync();
+        }
+        await using (var invalid = new StoreDbContext(options))
+        {
+            invalid.Products.Add(new Product { Name = "Sem fonte", Slug = $"sem-fonte-{Guid.NewGuid():N}", Sku = $"SEM-{Guid.NewGuid():N}", CategoryId = category.Id, BrandId = brand.Id, Price = 10m, Published = true, Inventory = new InventoryItem { OnHand = 1 } });
+            await Assert.ThrowsAsync<DbUpdateException>(() => invalid.SaveChangesAsync());
         }
         using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => {
             builder.UseSetting("ConnectionStrings:Default", connection);

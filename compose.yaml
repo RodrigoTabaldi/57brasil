@@ -49,6 +49,9 @@
       RabbitMq__Host: rabbitmq
       RabbitMq__Password: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
       Payment__EnableWebhook: ${PAYMENT_WEBHOOK_ENABLED:-false}
+      Payment__Gateway: ${PAYMENT_GATEWAY:-}
+      Payment__Environment: ${PAYMENT_ENVIRONMENT:-sandbox}
+      Payment__AbacatePayApiKey: ${ABACATEPAY_API_KEY:-}
       Payment__AccessToken: ${MERCADO_PAGO_ACCESS_TOKEN:-}
       Payment__WebhookSecret: ${MERCADO_PAGO_WEBHOOK_SECRET:-}
       Payment__SiteUrl: ${PUBLIC_SITE_URL:-}
@@ -79,6 +82,9 @@
       RabbitMq__Host: rabbitmq
       RabbitMq__Password: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
       Payment__EnableWebhook: ${PAYMENT_WEBHOOK_ENABLED:-false}
+      Payment__Gateway: ${PAYMENT_GATEWAY:-}
+      Payment__Environment: ${PAYMENT_ENVIRONMENT:-sandbox}
+      Payment__AbacatePayApiKey: ${ABACATEPAY_API_KEY:-}
       Payment__AccessToken: ${MERCADO_PAGO_ACCESS_TOKEN:-}
       Payment__WebhookSecret: ${MERCADO_PAGO_WEBHOOK_SECRET:-}
       Payment__SiteUrl: ${PUBLIC_SITE_URL:-}

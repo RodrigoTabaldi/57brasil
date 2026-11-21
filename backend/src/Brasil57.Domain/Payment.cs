@@ -9,6 +9,8 @@ public sealed class Payment
     public Order Order { get; set; } = null!;
     public required string Provider { get; set; }
     public string? ProviderPaymentId { get; set; }
+    public string? PixCode { get; set; }
+    public string? PixQrCode { get; set; }
     public required string PaymentMethod { get; set; }
     public decimal Amount { get; set; }
     public string Currency { get; set; } = "BRL";

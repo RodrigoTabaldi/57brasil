@@ -67,6 +67,9 @@ services:
       Shipping__UserAgent: ${SHIPPING_USER_AGENT:-}
       Shipping__Environment: ${SHIPPING_ENVIRONMENT:-production}
       Payment__EnableWebhook: ${PAYMENT_WEBHOOK_ENABLED:-false}
+      Payment__Gateway: ${PAYMENT_GATEWAY:-}
+      Payment__Environment: ${PAYMENT_ENVIRONMENT:-sandbox}
+      Payment__AbacatePayApiKey: ${ABACATEPAY_API_KEY:-}
       Payment__AccessToken: ${MERCADO_PAGO_ACCESS_TOKEN:-}
       Payment__WebhookSecret: ${MERCADO_PAGO_WEBHOOK_SECRET:-}
       Payment__SiteUrl: ${PUBLIC_SITE_URL:-}
@@ -97,6 +100,9 @@ services:
       RabbitMq__Host: rabbitmq
       RabbitMq__Password: ${RABBITMQ_PASSWORD:?Defina RABBITMQ_PASSWORD}
       Payment__EnableWebhook: ${PAYMENT_WEBHOOK_ENABLED:-false}
+      Payment__Gateway: ${PAYMENT_GATEWAY:-}
+      Payment__Environment: ${PAYMENT_ENVIRONMENT:-sandbox}
+      Payment__AbacatePayApiKey: ${ABACATEPAY_API_KEY:-}
       Payment__AccessToken: ${MERCADO_PAGO_ACCESS_TOKEN:-}
       Payment__WebhookSecret: ${MERCADO_PAGO_WEBHOOK_SECRET:-}
       Payment__SiteUrl: ${PUBLIC_SITE_URL:-}

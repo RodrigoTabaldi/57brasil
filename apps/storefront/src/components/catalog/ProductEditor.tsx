@@ -5,6 +5,7 @@ import { useState } from "react";
 export type AdminProductRecord = {
   id: string; name: string; slug: string; sku: string; price: number; published: boolean;
   brandId: string; manufacturerCode: string | null; shortDescription: string | null; description: string | null;
+  commercialSource: string | null; commercialVerifiedOn: string | null;
   weightKg: number | null; heightCm: number | null; widthCm: number | null; lengthCm: number | null; available: number;
 };
 type Brand = { id: string; name: string };
@@ -22,6 +23,8 @@ export function ProductEditor({ product, brands, onSaved }: { product: AdminProd
       brandId: String(data.get("brandId") ?? ""), manufacturerCode: String(data.get("manufacturerCode") ?? "").trim(),
       shortDescription: String(data.get("shortDescription") ?? "").trim(), description: String(data.get("description") ?? "").trim(),
       price: number("price"), weightKg: number("weightKg"), heightCm: number("heightCm"), widthCm: number("widthCm"), lengthCm: number("lengthCm"),
+      commercialSource: String(data.get("commercialSource") ?? "").trim(),
+      commercialVerifiedOn: data.get("commercialVerifiedOn") || null,
     };
     try {
       const response = await fetch(`/api/v1/admin/products/${product.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -37,6 +40,8 @@ export function ProductEditor({ product, brands, onSaved }: { product: AdminProd
       <label>Marca<select name="brandId" defaultValue={brands.some(item => item.id === product.brandId) ? product.brandId : ""} required><option value="">Selecione a marca real</option>{brands.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
       <label>Código do fabricante<input name="manufacturerCode" defaultValue={product.manufacturerCode ?? ""} maxLength={100} /></label>
       <label>Preço verificado (R$)<input name="price" type="number" min="0.01" max="9999999999.99" step="0.01" defaultValue={product.price || ""} required /></label>
+      <label>Fonte comercial revisada<input name="commercialSource" defaultValue={product.commercialSource ?? ""} maxLength={300} placeholder="Ex.: planilha revisada, versão e linha" /></label>
+      <label>Data da revisão<input name="commercialVerifiedOn" type="date" defaultValue={product.commercialVerifiedOn ?? ""} /></label>
       <label>Peso (kg)<input name="weightKg" type="number" min="0.001" step="0.001" defaultValue={product.weightKg ?? ""} required /></label>
       <label>Altura (cm)<input name="heightCm" type="number" min="0.01" step="0.01" defaultValue={product.heightCm ?? ""} required /></label>
       <label>Largura (cm)<input name="widthCm" type="number" min="0.01" step="0.01" defaultValue={product.widthCm ?? ""} required /></label>

@@ -33,6 +33,8 @@ public sealed class Product
     public decimal? WidthCm { get; set; }
     public decimal? LengthCm { get; set; }
     public bool Published { get; set; }
+    public string? CommercialSource { get; set; }
+    public DateOnly? CommercialVerifiedOn { get; set; }
     public bool CatalogVisible { get; set; }
     public string[] VehicleFamilies { get; set; } = [];
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

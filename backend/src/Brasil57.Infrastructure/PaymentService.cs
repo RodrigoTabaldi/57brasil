@@ -34,8 +34,11 @@ public sealed class PaymentService(StoreDbContext db, IPaymentGateway gateway)
         db.Payments.Add(payment);
         await db.SaveChangesAsync(ct);
         var charge = await gateway.CreateChargeAsync(new(orderId, amount, payment.Currency, method, idempotencyKey), ct);
+        if (charge.Amount != amount) throw new InvalidOperationException("Valor da cobrança divergente do pedido.");
         payment.ProviderPaymentId = charge.ProviderPaymentId;
         payment.ExpiresAt = charge.ExpiresAt;
+        payment.PixCode = charge.PixCode;
+        payment.PixQrCode = charge.PixQrCode;
         payment.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         return payment;
@@ -92,6 +95,7 @@ public sealed class PaymentService(StoreDbContext db, IPaymentGateway gateway)
     {
         var charge = await gateway.GetChargeAsync(payment.ProviderPaymentId!, ct);
         if (charge.ProviderPaymentId != payment.ProviderPaymentId) throw new InvalidOperationException("Identificador de cobrança divergente.");
+        if (charge.Amount != payment.Amount) throw new InvalidOperationException("Valor da cobrança divergente do pedido.");
         if (charge.Status == GatewayPaymentStatus.Paid)
         {
             var result = await new OrderReservationService(db).ConfirmPaymentAsync(

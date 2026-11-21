@@ -32,7 +32,16 @@ builder.Services.AddScoped<CatalogTaxonomyCache>();
 switch (builder.Configuration["Payment:Gateway"]?.ToLowerInvariant())
 {
     case "stripe": builder.Services.AddScoped<IPaymentGateway, StripePaymentGateway>(); builder.Services.AddScoped<PaymentService>(); break;
-    case "abacatepay": builder.Services.AddScoped<IPaymentGateway, AbacatePayPaymentGateway>(); builder.Services.AddScoped<PaymentService>(); break;
+    case "abacatepay":
+        var abacateKey = builder.Configuration["Payment:AbacatePayApiKey"];
+        var abacateEnvironment = builder.Configuration["Payment:Environment"] ?? "sandbox";
+        if (string.IsNullOrWhiteSpace(abacateKey) || abacateEnvironment is not ("sandbox" or "production"))
+            throw new InvalidOperationException("Configuração de pagamento AbacatePay incompleta.");
+        builder.Services.AddHttpClient("abacatepay", client => client.Timeout = TimeSpan.FromSeconds(10));
+        builder.Services.AddScoped<IPaymentGateway>(sp => new AbacatePayPaymentGateway(
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient("abacatepay"), abacateKey, abacateEnvironment == "sandbox"));
+        builder.Services.AddScoped<PaymentService>();
+        break;
     case null or "": break;
     default: throw new InvalidOperationException("Gateway de pagamento desconhecido.");
 }
@@ -224,6 +233,8 @@ api.MapPost("/cart/items", async (HttpContext context, AddCartItem input, StoreD
     var product = await db.Products.Include(x => x.Inventory).FirstOrDefaultAsync(x => x.Id == input.ProductId && x.Published, ct);
     if (product is null) return Results.NotFound();
     var id = await db.Carts.Where(x => x.UserId == userId).Select(x => (Guid?)x.Id).FirstOrDefaultAsync(ct);
+    if (id is not null && await db.Orders.AnyAsync(x => x.CartId == id && x.Status == OrderStatus.AwaitingPayment, ct))
+        return Results.Conflict(new { message = "Finalize ou cancele o pedido atual antes de alterar o carrinho." });
     var cart = id is null ? null : await db.Carts.FirstOrDefaultAsync(x => x.Id == id, ct);
     if (cart is null) { cart = new Cart { UserId = userId, ExpiresAt = DateTimeOffset.UtcNow.AddYears(10) }; db.Carts.Add(cart); }
     var item = await db.CartItems.FirstOrDefaultAsync(x => x.CartId == cart.Id && x.ProductId == input.ProductId, ct);
@@ -238,23 +249,34 @@ api.MapPost("/cart/items", async (HttpContext context, AddCartItem input, StoreD
 api.MapDelete("/cart/items/{itemId:guid}", async (Guid itemId, HttpContext context, StoreDbContext db, CancellationToken ct) => {
     if (!SameOrigin(context)) return Results.StatusCode(403);
     var userId = CustomerId(context);
+    if (userId is null) return Results.Unauthorized();
+    await using var transaction = await db.Database.BeginTransactionAsync(ct);
+    await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtext({userId.Value.ToString()}))", ct);
     var id = await db.Carts.Where(x => x.UserId == userId).Select(x => (Guid?)x.Id).FirstOrDefaultAsync(ct);
     if (id is null) return Results.NotFound();
+    if (await db.Orders.AnyAsync(x => x.CartId == id && x.Status == OrderStatus.AwaitingPayment, ct))
+        return Results.Conflict(new { message = "Finalize ou cancele o pedido atual antes de alterar o carrinho." });
     var item = await db.CartItems.FirstOrDefaultAsync(x => x.Id == itemId && x.CartId == id, ct);
     if (item is null) return Results.NotFound();
-    db.CartItems.Remove(item); await db.SaveChangesAsync(ct); return Results.NoContent();
+    db.CartItems.Remove(item); await db.SaveChangesAsync(ct); await transaction.CommitAsync(ct); return Results.NoContent();
 }).RequireAuthorization();
 api.MapPatch("/cart/items/{itemId:guid}", async (Guid itemId, HttpContext context, UpdateCartItem input, StoreDbContext db, CancellationToken ct) => {
     if (!SameOrigin(context)) return Results.StatusCode(403);
     if (input.Quantity is < 1 or > 99) return Results.ValidationProblem(new Dictionary<string,string[]> { ["quantity"] = ["Informe uma quantidade entre 1 e 99."] });
     var userId = CustomerId(context);
+    if (userId is null) return Results.Unauthorized();
+    await using var transaction = await db.Database.BeginTransactionAsync(ct);
+    await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtext({userId.Value.ToString()}))", ct);
     var id = await db.Carts.Where(x => x.UserId == userId).Select(x => (Guid?)x.Id).FirstOrDefaultAsync(ct);
     if (id is null) return Results.NotFound();
+    if (await db.Orders.AnyAsync(x => x.CartId == id && x.Status == OrderStatus.AwaitingPayment, ct))
+        return Results.Conflict(new { message = "Finalize ou cancele o pedido atual antes de alterar o carrinho." });
     var item = await db.CartItems.Include(x => x.Product).ThenInclude(x => x.Inventory).FirstOrDefaultAsync(x => x.Id == itemId && x.CartId == id, ct);
     if (item is null) return Results.NotFound();
     if (input.Quantity > item.Product.Inventory.Available) return Results.Conflict(new { message = "Quantidade indisponível." });
     item.Quantity = input.Quantity;
     await db.SaveChangesAsync(ct);
+    await transaction.CommitAsync(ct);
     return Results.NoContent();
 }).RequireAuthorization();static async Task BootstrapAdmin(IServiceProvider services, IConfiguration configuration)
 {

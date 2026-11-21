@@ -27,13 +27,14 @@ A 57 Brasil reúne busca de peças, catálogo por categoria e marca, seleção p
 | --- | --- |
 | Catálogo e busca | Consulta por API, filtros e facetas; vitrine demonstrativa quando não há produtos cadastrados |
 | Veículos | Marcas, modelos, versões e aplicações cadastradas |
-| Carrinho | Sessão anônima por cookie HttpOnly; valores recalculados no servidor |
+| Carrinho | Associado à conta autenticada; valores recalculados no servidor |
 | Administração | Login de administrador, painel inicial e criação de categorias, marcas e produtos |
 | Frete | Cotação via Melhor Envio quando as credenciais estão configuradas |
-| Pagamentos | Adaptador Mercado Pago e recepção/processamento de webhook opcionais; checkout desabilitado |
+| Pagamentos | Adaptador Pix AbacatePay selecionável em sandbox; criação e consulta de cobranças testadas com respostas controladas; checkout desabilitado |
 | Pedidos | Reserva transacional implementada como serviço interno; criação de pedido para clientes ainda indisponível |
+| Endereços | Cadastro autenticado, isolado por cliente e validado no servidor |
 
-**Dados comerciais:** nenhum produto ou compatibilidade é carregado automaticamente no banco. Preços, estoque, ofertas e aplicações só devem ser publicados com fontes verificadas.
+**Dados comerciais:** nenhum produto ou compatibilidade é carregado automaticamente no banco. A planilha revisada indicada pelo proprietário ainda precisa ser fornecida e importada com validação. A publicação de produto exige fonte e data de verificação. A migração `CommercialProvenance` retira da vitrine produtos existentes sem essa evidência, preservando seus registros para revisão.
 
 ## Início rápido
 
@@ -90,7 +91,7 @@ flowchart LR
     Q --> W["Worker"]
     W --> P
     A1 & A2 -. "cotação configurada" .-> ME["Melhor Envio"]
-    W -. "consulta de pagamento<br/>quando habilitado" .-> MP["Mercado Pago"]
+    A1 & A2 -. "Pix interno<br/>quando configurado" .-> AB["AbacatePay"]
 ```
 
 A API segue um monólito modular: domínio e regras em `Brasil57.Domain`, contratos em `Brasil57.Application`, persistência e integrações em `Brasil57.Infrastructure`, HTTP em `Brasil57.Api`. O worker trata notificações persistidas. A réplica atende apenas consultas elegíveis do catálogo e a leitura volta ao banco principal se ela estiver atrasada ou indisponível. Redis acelera listas de categorias e marcas; falhas de cache não impedem a leitura do banco. O inbox PostgreSQL é a fonte de verdade das notificações, mesmo quando RabbitMQ falha.
@@ -130,11 +131,11 @@ O catálogo oferece busca, filtros por marca/categoria, faixa de preço, disponi
 
 ### Carrinho e administração
 
-O carrinho usa uma sessão anônima com cookie HttpOnly. A API confere preços e disponibilidade no banco e exige mesma origem nas escritas. Adicionar um item **não reserva estoque**. A administração exige autenticação e papel `Administrator` no servidor; o cadastro inicial de categoria, marca e produto possui auditoria.
+O carrinho exige uma conta autenticada e usa o cookie de sessão HttpOnly. A API confere preços e disponibilidade no banco e exige mesma origem nas escritas. Adicionar um item **não reserva estoque**. A administração exige autenticação e papel `Administrator` no servidor; o cadastro inicial de categoria, marca e produto possui auditoria.
 
 ### Frete e pagamento
 
-A cotação usa Melhor Envio quando `SHIPPING_TOKEN`, `SHIPPING_ORIGIN_CEP` e `SHIPPING_USER_AGENT` estão definidos. Sem configuração, a API responde indisponibilidade em vez de inventar frete. O adaptador de pagamento e o webhook do Mercado Pago são componentes preparatórios. `PAYMENT_WEBHOOK_ENABLED` fica desabilitado por padrão e habilitar o webhook **não habilita checkout**.
+A cotação usa Melhor Envio quando `SHIPPING_TOKEN`, `SHIPPING_ORIGIN_CEP` e `SHIPPING_USER_AGENT` estão definidos. Sem configuração, a API responde indisponibilidade em vez de inventar frete. O adaptador Pix AbacatePay usa `PAYMENT_GATEWAY=abacatepay`, `PAYMENT_ENVIRONMENT=sandbox` e `ABACATEPAY_API_KEY` no processo da API, mas ainda não é exposto ao cliente. Não há webhook AbacatePay, conciliação automática ou testes com credenciais sandbox. O webhook do Mercado Pago é independente e continua desabilitado por padrão. Configurar qualquer adaptador **não habilita checkout**.
 
 ```mermaid
 flowchart LR

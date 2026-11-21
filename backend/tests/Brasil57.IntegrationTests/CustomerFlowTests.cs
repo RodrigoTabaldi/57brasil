@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
 using Brasil57.Domain;
 using Brasil57.Infrastructure;
@@ -28,7 +28,7 @@ public sealed class CustomerFlowTests
             var db = scope.ServiceProvider.GetRequiredService<StoreDbContext>();
             await db.Database.MigrateAsync();
             var suffix = Guid.NewGuid().ToString("N");
-            var product = new Product { Name = "Peça de teste", Slug = $"customer-{suffix}", Sku = $"CUSTOMER-{suffix}", Category = new Category { Name = "Teste", Slug = $"category-{suffix}" }, Brand = new Brand { Name = "Teste", Slug = $"brand-{suffix}" }, Price = 25m, Published = true, Inventory = new InventoryItem { OnHand = 10 } };
+            var product = new Product { Name = "Peça de teste", Slug = $"customer-{suffix}", Sku = $"CUSTOMER-{suffix}", Category = new Category { Name = "Teste", Slug = $"category-{suffix}" }, Brand = new Brand { Name = "Teste", Slug = $"brand-{suffix}" }, Price = 25m, Published = true, CommercialSource = "Integration test fixture", CommercialVerifiedOn = new DateOnly(2026, 11, 18), Inventory = new InventoryItem { OnHand = 10 } };
             db.Products.Add(product); await db.SaveChangesAsync(); productId = product.Id;
         }
         using var customer = factory.CreateClient();
@@ -38,8 +38,14 @@ public sealed class CustomerFlowTests
         Assert.Equal(HttpStatusCode.OK, (await customer.GetAsync("/api/v1/products")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await customer.GetAsync("/api/v1/cart")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await Add(customer, productId, Guid.NewGuid().ToString())).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Post(customer, "/api/v1/account/register", new { fullName = (string?)null, email, phone = "11999999999", password = "StrongPassword1!", confirmPassword = "StrongPassword1!" })).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await Post(customer, "/api/v1/account/register", new { fullName = "Cliente Teste", email, phone = "+5566996308666", cpf = "52998224725", password = "StrongPassword1!", confirmPassword = "StrongPassword1!" })).StatusCode);
         Assert.Equal("66996308666", (await customer.GetFromJsonAsync<ProfileResponse>("/api/v1/account/me"))!.PhoneNumber);
+        using (var invalidProfile = new HttpRequestMessage(HttpMethod.Patch, "/api/v1/account/me") { Content = JsonContent.Create(new { fullName = (string?)null, phone = "11999999999" }) })
+        {
+            invalidProfile.Headers.Add("Origin", "http://localhost");
+            Assert.Equal(HttpStatusCode.BadRequest, (await customer.SendAsync(invalidProfile)).StatusCode);
+        }
         Assert.Equal(HttpStatusCode.Conflict, (await Post(other, "/api/v1/account/register", new { fullName = "Outro Cliente", email = otherEmail, phone = "11999999998", cpf = "52998224725", password = "StrongPassword1!", confirmPassword = "StrongPassword1!" })).StatusCode);
         var key = Guid.NewGuid().ToString();
         var requests = await Task.WhenAll(Add(customer, productId, key), Add(customer, productId, key));
