@@ -31,6 +31,8 @@ public sealed class Product
     public string? PriceSourceReference { get; set; }
     public string? StockSourceReference { get; set; }
     public string? CompatibilitySourceReference { get; set; }
+    public DateTimeOffset? SupplierConfirmedAt { get; set; }
+    public string? ApplicationNotes { get; set; }
     public decimal? WeightKg { get; set; }
     public decimal? HeightCm { get; set; }
     public decimal? WidthCm { get; set; }
@@ -84,6 +86,11 @@ public sealed class CartOperation
     public Guid ProductId { get; set; }
     public int Quantity { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+}
+public sealed class DailyVisit
+{
+    public DateOnly Day { get; set; }
+    public long Count { get; set; }
 }
 
 

@@ -17,6 +17,6 @@ O carrinho pertence ao usuário autenticado e persiste no PostgreSQL. A mesma `I
 
 Clientes: `POST /api/v1/account/register`, `/login`, `/logout`, `/forgot-password`, `/reset-password`; `GET/PATCH /api/v1/account/me`. Login e cadastro criam cookie HttpOnly. Recuperação por e-mail depende de `Smtp__Host`, `Smtp__From`, `Smtp__User`, `Smtp__Password` e `Storefront__Url` configurados no processo da API.
 
-A área administrativa usa ASP.NET Identity e exige papel `Administrator` no servidor: `POST/DELETE /api/v1/admin/session`, `GET /api/v1/admin/dashboard`, `GET/POST /api/v1/admin/products`, `POST /api/v1/admin/categories`, `POST /api/v1/admin/brands`. Ainda não há checkout.
+A área administrativa exige Administrator e MFA no servidor. POST /api/v1/admin/session recebe e-mail, senha e código TOTP ou de recuperação. GET/POST /api/v1/admin/mfa/setup cadastram o autenticador na primeira entrada. Após MFA, GET /api/v1/admin/dashboard, /overview, /products?q=&page=, /categories, /orders?page= e /accounts?page=; POST /products, /categories e /brands; PATCH /products/{id} e /categories/{id}. POST /api/v1/visits conta acessos diários sem identificar visitantes. Ainda não há checkout.
 
 
