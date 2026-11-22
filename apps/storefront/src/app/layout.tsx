@@ -18,6 +18,7 @@ import "../styles/loading.css";
 import "../styles/explore-layout.css";
 import "../styles/refresh.css";
 import "../styles/product-showcase.css";
+import "../styles/part-types.css";
 import "../styles/privacy.css";
 
 export const metadata: Metadata = {

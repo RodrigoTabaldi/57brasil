@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 namespace Brasil57.Infrastructure;
 public sealed class StoreDbContext(DbContextOptions<StoreDbContext> options) : IdentityDbContext<StoreUser, IdentityRole<Guid>, Guid>(options)
 {
+    public DbSet<PartType> PartTypes => Set<PartType>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Brand> Brands => Set<Brand>();
     public DbSet<Product> Products => Set<Product>();
@@ -28,6 +29,7 @@ public sealed class StoreDbContext(DbContextOptions<StoreDbContext> options) : I
     protected override void OnModelCreating(ModelBuilder model)
     {
         base.OnModelCreating(model);
+        model.Entity<PartType>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.Slug).IsUnique(); e.HasIndex(x => x.GroupSlug); e.Property(x => x.Name).HasMaxLength(160); e.Property(x => x.Slug).HasMaxLength(180); e.Property(x => x.Group).HasMaxLength(100); e.Property(x => x.GroupSlug).HasMaxLength(120); e.Property(x => x.Status).HasMaxLength(80); e.Property(x => x.ImageUrl).HasMaxLength(300); });
         model.Entity<AuditLog>(e => { e.HasKey(x => x.Id); e.Property(x => x.Action).HasMaxLength(80); e.Property(x => x.Entity).HasMaxLength(80); e.Property(x => x.EvidenceSnapshot).HasColumnType("jsonb"); e.HasIndex(x => x.CreatedAt); });
         model.Entity<Category>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.Slug).IsUnique(); e.Property(x => x.Name).HasMaxLength(120); e.Property(x => x.Slug).HasMaxLength(140); e.HasOne(x => x.Parent).WithMany().HasForeignKey(x => x.ParentId).OnDelete(DeleteBehavior.Restrict); });
         model.Entity<Brand>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.Slug).IsUnique(); e.Property(x => x.Name).HasMaxLength(120); e.Property(x => x.Slug).HasMaxLength(140); });

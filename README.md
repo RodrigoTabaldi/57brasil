@@ -181,6 +181,8 @@ Os testes de integração executam migrations e deixam dados no PostgreSQL infor
 
 Para desenvolver somente a interface, rode `npm run dev --prefix apps/storefront`. Páginas que consultam o catálogo precisam de uma API acessível; `API_INTERNAL_URL` define o endereço usado pelo frontend no servidor.
 
+Para abrir o catálogo completo localmente, configure `POSTGRES_PASSWORD` no `.env` e execute `docker compose up -d --build proxy redis`. O site estará em `http://localhost:8088/produtos`. A etapa `migrate` aplica a migration e insere os 100 tipos de peças no PostgreSQL; novas execuções não alteram registros já cadastrados. Se a porta 5250 estiver ocupada, defina `API_LOCAL_PORT` no `.env` para outra porta livre.
+
 ## Antes de operar comercialmente
 
 - Integrar e testar criação de pedido, reserva, frete, início de pagamento, confirmação e reconciliação.
