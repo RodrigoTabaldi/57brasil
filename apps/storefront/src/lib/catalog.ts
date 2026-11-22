@@ -2,14 +2,33 @@ export type ProductSummary = { id: string; name: string; slug: string; sku: stri
 export type ProductDetail = ProductSummary & { manufacturerCode: string | null; shortDescription: string | null; description: string | null; brandSlug: string | null; categorySlug: string; weightKg: number | null; heightCm: number | null; widthCm: number | null; lengthCm: number | null; images: { id: string; url: string; altText: string }[] };
 export type ProductPage = { items: ProductSummary[]; total: number; page: number; pageSize: number };
 export type ProductFacets = { categories: { slug: string; name: string; count: number }[]; brands: { slug: string; name: string; count: number }[] };
+export type PartType = { id: string; name: string; slug: string; group: string; groupSlug: string; imageUrl: string };
+export type PartTypePage = { items: PartType[]; total: number; page: number; pageSize: number };
+export type PartTypeGroup = { name: string; slug: string; count: number };
 const baseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5250";
+export async function getPartTypes(params: URLSearchParams): Promise<PartTypePage> {
+  const response = await fetch(`${baseUrl}/api/v1/part-types?${params}`, { cache: "no-store" });
+  if (!response.ok) throw new Error("Não foi possível carregar os tipos de peças.");
+  return response.json() as Promise<PartTypePage>;
+}
+export async function getPartTypeGroups(): Promise<PartTypeGroup[]> {
+  const response = await fetch(`${baseUrl}/api/v1/part-types/groups`, { cache: "no-store" });
+  if (!response.ok) throw new Error("Não foi possível carregar os grupos de peças.");
+  return response.json() as Promise<PartTypeGroup[]>;
+}
+export async function getPartType(slug: string): Promise<PartType | null> {
+  const response = await fetch(`${baseUrl}/api/v1/part-types/${encodeURIComponent(slug)}`, { cache: "no-store" });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error("Não foi possível carregar o tipo de peça.");
+  return response.json() as Promise<PartType>;
+}
 export async function getProducts(params: URLSearchParams): Promise<ProductPage> {
   const response = await fetch(`${baseUrl}/api/v1/products?${params}`, { cache: "no-store" });
   if (!response.ok) throw new Error("Não foi possível carregar o catálogo.");
   return response.json() as Promise<ProductPage>;
 }
-export async function getProductFacets(): Promise<ProductFacets> {
-  const response = await fetch(`${baseUrl}/api/v1/products/facets`, { cache: "no-store" });
+export async function getProductFacets(params = new URLSearchParams()): Promise<ProductFacets> {
+  const response = await fetch(`${baseUrl}/api/v1/products/facets?${params}`, { cache: "no-store" });
   if (!response.ok) throw new Error("Não foi possível carregar os filtros.");
   return response.json() as Promise<ProductFacets>;
 }

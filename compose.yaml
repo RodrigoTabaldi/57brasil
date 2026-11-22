@@ -31,7 +31,7 @@
       context: ./backend
       dockerfile: Dockerfile.api
     ports:
-      - "127.0.0.1:5250:8080"
+      - "127.0.0.1:${API_LOCAL_PORT:-5250}:8080"
     environment:
       ASPNETCORE_URLS: http://+:8080
       ASPNETCORE_ENVIRONMENT: Development
@@ -43,7 +43,7 @@
       BootstrapAdmin__Email: ${BOOTSTRAP_ADMIN_EMAIL:-}
       BootstrapAdmin__Password: ${BOOTSTRAP_ADMIN_PASSWORD:-}
       ConnectionStrings__Default: Host=db;Database=brasil57;Username=brasil57;Password=${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env};Maximum Pool Size=20
-      ConnectionStrings__CatalogReplica: Host=db-replica;Database=brasil57;Username=brasil57;Password=${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env};Maximum Pool Size=10;Timeout=2
+      ConnectionStrings__CatalogReplica: ${CATALOG_REPLICA_CONNECTION:-}
       Redis__Host: redis
       Redis__Password: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
       RabbitMq__Host: rabbitmq

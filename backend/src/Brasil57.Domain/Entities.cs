@@ -1,4 +1,14 @@
 ﻿namespace Brasil57.Domain;
+public sealed class PartType
+{
+    public Guid Id { get; set; }
+    public required string Name { get; set; }
+    public required string Slug { get; set; }
+    public required string Group { get; set; }
+    public required string GroupSlug { get; set; }
+    public required string Status { get; set; }
+    public required string ImageUrl { get; set; }
+}
 public sealed class Category
 {
     public Guid Id { get; set; } = Guid.NewGuid();
