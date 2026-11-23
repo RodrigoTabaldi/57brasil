@@ -43,3 +43,5 @@
 @media(max-width:700px){.demo-product-page .demo-detail-grid{grid-template-columns:1fr;gap:22px}.demo-product-page .demo-detail-art{min-height:340px}.demo-product-page .demo-detail-art img{padding:20px}.demo-product-info{padding:0}.demo-product-more{margin-top:42px}}
 @media(max-width:460px){.demo-product-page .demo-detail-art{min-height:290px}.demo-product-tabs span,.demo-product-tabs a{padding:0 10px;font-size:.64rem}}
 @media(prefers-reduced-motion:reduce){.demo-product-page .demo-detail-art img,.demo-product-disclosure p{animation:none;transition:none}.demo-product-page .demo-detail-art:hover img{transform:none}}
+
+.product-image-label{position:absolute;z-index:2;left:12px;bottom:12px;padding:6px 9px;border-radius:5px;background:#fffdfbea;color:var(--graphite);font-size:.65rem;font-weight:800;letter-spacing:.02em}

@@ -25,14 +25,7 @@ internal static class CatalogQueries
         if (!string.IsNullOrWhiteSpace(category)) query = query.Where(x => x.Category.Slug == category);
         if (!string.IsNullOrWhiteSpace(vehicleType))
         {
-            var legacyCategories = vehicleType switch
-            {
-                "carro" => new[] { "carros", "caminhonetes-e-suvs" },
-                "moto" => new[] { "motocicletas" },
-                "caminhao" => new[] { "caminhoes-e-veiculos-pesados" },
-                _ => []
-            };
-            query = query.Where(x => x.VehicleFamilies.Contains(vehicleType) || legacyCategories.Contains(x.Category.Slug));
+            query = query.Where(x => x.VehicleFamilies.Contains(vehicleType));
         }
         if (!string.IsNullOrWhiteSpace(brand)) query = query.Where(x => x.Brand.Slug == brand);
         if (vehicleVersion is not null) query = query.Where(x => x.CompatibilitySourceReference != null && db.ProductApplications.Any(a => a.ProductId == x.Id && a.VehicleVersionId == vehicleVersion && (year == null || (a.StartYear <= year && a.EndYear >= year))));

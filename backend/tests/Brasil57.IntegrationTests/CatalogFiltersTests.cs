@@ -12,6 +12,55 @@ namespace Brasil57.IntegrationTests;
 public sealed class CatalogFiltersTests
 {
     [Fact]
+    public async Task Vehicle_family_filter_returns_existing_drafts_with_reference_images_and_empty_results()
+    {
+        var connection = Environment.GetEnvironmentVariable("BRASIL57_TEST_DATABASE")
+            ?? throw new InvalidOperationException("Defina BRASIL57_TEST_DATABASE para um PostgreSQL descartável.");
+        var options = new DbContextOptionsBuilder<StoreDbContext>().UseNpgsql(connection).Options;
+        var suffix = Guid.NewGuid().ToString("N");
+        var category = new Category { Name = "Categoria de teste", Slug = $"family-test-{suffix}" };
+        var brand = new Brand { Name = "Marca de teste", Slug = $"family-brand-{suffix}" };
+        var families = new[] { "carro", "moto", "caminhao" };
+        var products = families.Select(family => new Product
+        {
+            Name = $"Cadastro {family}", Slug = $"family-{family}-{suffix}", Sku = $"FAMILY-{family}-{suffix}",
+            Category = category, Brand = brand, Published = false, CatalogVisible = true,
+            VehicleFamilies = [family], Inventory = new InventoryItem { OnHand = 0 },
+            Images = [new ProductImage { Url = $"/demo-products/{family}.png", AltText = "Imagem de referência" }]
+        }).ToArray();
+        await using (var setup = new StoreDbContext(options))
+        {
+            await setup.Database.MigrateAsync();
+            setup.Products.AddRange(products);
+            await setup.SaveChangesAsync();
+        }
+
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => {
+            builder.UseSetting("ConnectionStrings:Default", connection);
+            builder.UseSetting("DataProtection:KeyPath", Path.Combine(Path.GetTempPath(), $"brasil57-family-{suffix}"));
+        });
+        using var client = factory.CreateClient();
+
+        foreach (var (family, product) in families.Zip(products))
+        {
+            var result = await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?vehicleType={family}&category={category.Slug}");
+            Assert.NotNull(result);
+            var item = Assert.Single(result.Items);
+            Assert.Equal(product.Id, item.Id);
+            Assert.Equal($"/demo-products/{family}.png", item.ImageUrl);
+        }
+
+        var noMatch = await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?vehicleType=onibus&category={category.Slug}");
+        Assert.NotNull(noMatch);
+        Assert.Empty(noMatch.Items);
+        Assert.Equal(0, noMatch.Total);
+        var draftsOnly = await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?vehicleType=moto&category={category.Slug}&approvedOnly=true");
+        Assert.NotNull(draftsOnly);
+        Assert.Empty(draftsOnly.Items);
+        Assert.Equal(0, draftsOnly.Total);
+    }
+
+    [Fact]
     public async Task Vehicle_application_is_hidden_until_its_document_is_recorded()
     {
         var connection = Environment.GetEnvironmentVariable("BRASIL57_TEST_DATABASE")
@@ -85,8 +134,64 @@ public sealed class CatalogFiltersTests
         Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/v1/products?minPrice=20&maxPrice=10")).StatusCode);
     }
 
+    [Fact]
+    public async Task Illustrative_vehicle_family_filter_returns_only_existing_family_drafts_and_handles_empty_results()
+    {
+        var connection = Environment.GetEnvironmentVariable("BRASIL57_TEST_DATABASE")
+            ?? throw new InvalidOperationException("Defina BRASIL57_TEST_DATABASE para um PostgreSQL descartável.");
+        var options = new DbContextOptionsBuilder<StoreDbContext>().UseNpgsql(connection).Options;
+        var suffix = Guid.NewGuid().ToString("N");
+        var category = new Category { Name = "Teste ilustrativo", Slug = $"demo-{suffix}" };
+        var brand = new Brand { Name = "Marca pendente", Slug = $"demo-{suffix}" };
+        var products = new[]
+        {
+            new Product { Name = "Peça carro", Slug = $"demo-carro-{suffix}", Sku = $"DEMO-CAR-{suffix}", Category = category, Brand = brand, CatalogVisible = true, VehicleFamilies = ["carro"], Inventory = new InventoryItem { OnHand = 0 } },
+            new Product { Name = "Peça moto", Slug = $"demo-moto-{suffix}", Sku = $"DEMO-MOTO-{suffix}", Category = category, Brand = brand, CatalogVisible = true, VehicleFamilies = ["moto"], Inventory = new InventoryItem { OnHand = 0 } },
+            new Product { Name = "Peça caminhão", Slug = $"demo-caminhao-{suffix}", Sku = $"DEMO-TRUCK-{suffix}", Category = category, Brand = brand, CatalogVisible = true, VehicleFamilies = ["caminhao"], Inventory = new InventoryItem { OnHand = 0 } },
+        };
+        await using (var setup = new StoreDbContext(options))
+        {
+            await setup.Database.MigrateAsync();
+            setup.Products.AddRange(products);
+            var motorcycleCategory = await setup.Categories.SingleOrDefaultAsync(x => x.Slug == "motocicletas");
+            if (motorcycleCategory is null)
+            {
+                motorcycleCategory = new Category { Name = "Motocicletas", Slug = "motocicletas" };
+                setup.Categories.Add(motorcycleCategory);
+            }
+            setup.Products.Add(new Product
+            {
+                Name = "Categoria antiga sem família",
+                Slug = $"demo-legacy-moto-{suffix}",
+                Sku = $"DEMO-LEGACY-{suffix}",
+                Category = motorcycleCategory,
+                Brand = brand,
+                CatalogVisible = true,
+                Inventory = new InventoryItem { OnHand = 0 }
+            });
+            await setup.SaveChangesAsync();
+        }
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => {
+            builder.UseSetting("ConnectionStrings:Default", connection);
+            builder.UseSetting("DataProtection:KeyPath", Path.Combine(Path.GetTempPath(), $"brasil57-demo-family-{suffix}"));
+        });
+        using var client = factory.CreateClient();
+
+        foreach (var (family, expected) in new[] { ("carro", products[0]), ("moto", products[1]), ("caminhao", products[2]) })
+        {
+            var result = await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?vehicleType={family}&brand={brand.Slug}");
+            Assert.NotNull(result);
+            Assert.Equal(expected.Id, Assert.Single(result.Items).Id);
+        }
+
+        var empty = await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?vehicleType=moto&q=sem-correspondencia-{suffix}");
+        Assert.NotNull(empty);
+        Assert.Empty(empty.Items);
+        Assert.Equal(0, empty.Total);
+    }
+
     private sealed record ProductPage(List<ProductItem> Items, int Total);
-    private sealed record ProductItem(Guid Id);
+    private sealed record ProductItem(Guid Id, string? ImageUrl);
     private sealed record Facets(List<Facet> Categories, List<Facet> Brands);
     private sealed record Facet(string Slug, int Count);
 }
