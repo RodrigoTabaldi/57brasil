@@ -48,8 +48,8 @@ public sealed class CatalogFiltersTests
         var suffix = Guid.NewGuid().ToString("N");
         var category = new Category { Name = "Freios teste", Slug = $"freios-{suffix}" };
         var brand = new Brand { Name = "Marca teste", Slug = $"marca-{suffix}" };
-        var verified = new Product { Name = "Freio confirmado", Slug = $"confirmado-{suffix}", Sku = $"57BR-{suffix}", Category = category, Brand = brand, CatalogVisible = true, VehicleFamilies = ["moto", "carro"], CompatibilitySourceReference = "Catálogo fabricante", Inventory = new InventoryItem() };
-        var unverified = new Product { Name = "Freio pendente", Slug = $"pendente-{suffix}", Sku = $"57BR-P-{suffix}", Category = category, Brand = brand, CatalogVisible = true, VehicleFamilies = ["moto"], Inventory = new InventoryItem() };
+        var verified = new Product { Name = "Freio confirmado", Slug = $"confirmado-{suffix}", Sku = $"OUTRO-{suffix}", Category = category, Brand = brand, CatalogVisible = true, Published = true, VehicleFamilies = ["moto", "carro"], CompatibilitySourceReference = "Catálogo fabricante", Inventory = new InventoryItem() };
+        var unverified = new Product { Name = "Freio pendente", Slug = $"pendente-{suffix}", Sku = $"57BR-P-{suffix}", Category = category, Brand = brand, CatalogVisible = true, Published = true, VehicleFamilies = ["moto"], Inventory = new InventoryItem() };
         await using (var db = new StoreDbContext(options)) { await db.Database.MigrateAsync(); db.Products.AddRange(verified, unverified); await db.SaveChangesAsync(); }
         using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => {
             builder.UseSetting("ConnectionStrings:Default", connection);

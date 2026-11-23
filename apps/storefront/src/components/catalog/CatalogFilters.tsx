@@ -23,7 +23,7 @@ type Props = {
 export function CatalogFilters({ facets, query, category, brand, vehicleType, count, catalogItems = false }: Props) {
   const categories = facets.categories;
   const brands = facets.brands.filter(item => item.slug !== "marca-a-confirmar");
-  const featured = featuredCategories.map(item => ({ ...item, count: categories.find(category => category.slug === item.slug)?.count }));
+  const featured = featuredCategories.map(item => ({ ...item, count: catalogItems && (query || vehicleType) ? undefined : categories.find(category => category.slug === item.slug)?.count }));
   const selected = categories.find(item => item.slug === category);
   if (selected && !featured.some(item => item.slug === selected.slug)) featured.push(selected);
   const categoryOptions = [...featured, ...categories.filter(item => !featured.some(featuredItem => featuredItem.slug === item.slug))];
@@ -60,7 +60,7 @@ export function CatalogFilters({ facets, query, category, brand, vehicleType, co
         </nav>
       </section>
       <section className="catalog-filter-section" aria-label="Refinar produtos">
-        <form className="catalog-filter-form catalog-filter-form-real" action="/#catalogo" method="get">
+        <form key={`${query ?? ""}|${category ?? ""}|${brand ?? ""}|${vehicleType ?? ""}`} className="catalog-filter-form catalog-filter-form-real" action="/#catalogo" method="get">
           {vehicleType && <input type="hidden" name="tipo" value={vehicleType} />}
           <label className="catalog-search-field"><span>Nome ou código</span><span className="catalog-field-control"><Search size={19} aria-hidden="true" /><input name="q" type="search" defaultValue={query ?? ""} placeholder="Ex.: cabo de vela…" autoComplete="off" /></span></label>
           <label className="catalog-price-field"><span>Categoria</span><select name="categoria" defaultValue={category ?? ""}><option value="">Todas as categorias</option>{categoryOptions.map(item => <option key={item.slug} value={item.slug}>{item.name}</option>)}</select></label>

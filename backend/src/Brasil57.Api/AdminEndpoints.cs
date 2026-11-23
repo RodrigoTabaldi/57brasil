@@ -137,6 +137,7 @@ public static partial class AdminEndpoints
             product.ApplicationNotes = input.ApplicationNotes?.Trim();
             if (product.ApplicationNotes?.Length > 500 || product.SupplierConfirmedAt > DateTimeOffset.UtcNow) return Results.BadRequest();
             if (!ValidOptionalReference(product.PriceSourceReference) || !ValidOptionalReference(product.StockSourceReference) || !ValidOptionalReference(product.CompatibilitySourceReference)) return Results.BadRequest();
+            if (product.VehicleFamilies.Length > 0 && !ProductPublicationPolicy.ValidReference(product.CompatibilitySourceReference)) return Results.ValidationProblem(new Dictionary<string, string[]> { ["vehicleFamilies"] = ["Informe o documento que confirma as aplicações veiculares."] });
             if (product.Published)
             {
                 var brandSlug = await db.Brands.Where(x => x.Id == product.BrandId).Select(x => x.Slug).FirstOrDefaultAsync(ct);

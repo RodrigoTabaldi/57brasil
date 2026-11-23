@@ -11,6 +11,7 @@ function pageHref(filters: Filters, page: number) {
   const params = new URLSearchParams();
   if (filters.q) params.set("q", filters.q);
   if (filters.grupo ?? filters.categoria) params.set("grupo", filters.grupo ?? filters.categoria!);
+  if (filters.vehicleType) params.set("vehicleType", filters.vehicleType);
   params.set("page", String(page));
   return `/produtos?${params}#pecas-catalogadas`;
 }
@@ -22,6 +23,7 @@ export default async function ProductsPage({ searchParams }: Props) {
   const params = new URLSearchParams({ page: currentPage });
   if (filters.q) params.set("q", filters.q);
   if (selectedGroup) params.set("group", selectedGroup);
+  if (filters.vehicleType) params.set("vehicleType", filters.vehicleType);
   const [typesResult, groupsResult, categoriesResult] = await Promise.allSettled([
     getPartTypes(params),
     getPartTypeGroups(),
@@ -35,6 +37,7 @@ export default async function ProductsPage({ searchParams }: Props) {
     <nav className="breadcrumb" aria-label="Navegação estrutural"><Link href="/">Início</Link><span>/</span><span>Catálogo de peças</span></nav>
     <div className="catalog-heading"><div><span className="section-kicker">CATÁLOGO 57 BRASIL</span><h1>{filters.q ? `Resultados para “${filters.q}”` : "Peças catalogadas"}</h1><p>Produtos cadastrados com imagens ilustrativas. Confirme aplicação, preço e disponibilidade antes da compra.</p></div><SlidersHorizontal size={27} aria-hidden="true" /></div>
     <div className="catalog-layout"><aside className="filter-panel"><h2>Filtrar peças</h2><form action="/produtos" method="get">
+      {filters.vehicleType && <input type="hidden" name="vehicleType" value={filters.vehicleType} />}
       <label htmlFor="catalog-q">Nome da peça</label><input id="catalog-q" name="q" type="search" defaultValue={filters.q ?? ""} placeholder="Ex.: filtro de óleo…" autoComplete="off" />
       <label htmlFor="catalog-group">Grupo ou tipo de peça</label><select id="catalog-group" name="grupo" defaultValue={selectedGroup ?? ""}><option value="">Todos os grupos</option>{groups?.map(item => <optgroup key={item.slug} label={item.name}><option value={item.slug}>Todos: {item.name} ({item.count})</option>{categories?.filter(category => category.groupSlug === item.slug).map(category => <option key={category.slug} value={category.slug}>{category.name} ({category.count})</option>)}</optgroup>)}</select>
       <button className="button" type="submit">Aplicar filtros <ArrowRight size={16} aria-hidden="true" /></button><Link className="clear-filters" href="/produtos">Limpar filtros</Link>

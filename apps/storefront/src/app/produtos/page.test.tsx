@@ -52,6 +52,14 @@ it("keeps filters in pagination links", async () => {
   expect(screen.getByRole("link", { name: "Próxima" }).getAttribute("href")).toBe("/produtos?q=filtro&grupo=motor&page=3#pecas-catalogadas");
 });
 
+it("applies the selected vehicle and preserves it in the form and pagination", async () => {
+  catalogMocks.getPartTypes.mockResolvedValue({ items: [{ id: "1", name: "Filtro" }], total: 30, page: 1, pageSize: 24 });
+  const { container } = render(await ProductsPage({ searchParams: Promise.resolve({ vehicleType: "moto" }) }));
+  expect((catalogMocks.getPartTypes.mock.calls[0][0] as URLSearchParams).get("vehicleType")).toBe("moto");
+  expect(container.querySelector<HTMLInputElement>('input[name="vehicleType"]')?.value).toBe("moto");
+  expect(screen.getByRole("link", { name: "Próxima" }).getAttribute("href")).toContain("vehicleType=moto");
+});
+
 it("makes all 100 catalog items reachable through pagination", async () => {
   catalogMocks.getPartTypes.mockResolvedValue({ items: [{ id: "100", name: "Última peça" }], total: 100, page: 5, pageSize: 24 });
   render(await ProductsPage({ searchParams: Promise.resolve({ page: "5" }) }));
