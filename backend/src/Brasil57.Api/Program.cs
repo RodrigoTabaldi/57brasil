@@ -82,6 +82,7 @@ if (args.Contains("--migrate", StringComparer.Ordinal))
     await db.Database.MigrateAsync();
     await CatalogSeed.EnsureDepartmentsAsync(db);
     await CatalogSeed.EnsureCatalogDraftsAsync(db);
+    await PartTypeSeed.EnsureAsync(db);
     await BootstrapAdmin(scope.ServiceProvider, app.Configuration);
     return;
 }
@@ -110,6 +111,30 @@ api.MapPost("/visits", async (HttpContext context, StoreDbContext db, Cancellati
     await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"DailyVisits\" (\"Day\", \"Count\") VALUES ({day}, 1) ON CONFLICT (\"Day\") DO UPDATE SET \"Count\" = \"DailyVisits\".\"Count\" + 1", ct);
     return Results.NoContent();
 });
+api.MapGet("/part-types", async Task<IResult> (StoreDbContext db, string? q, string? group, int? page, CancellationToken ct) => {
+    if (q?.Length is > 120 || group?.Length is > 120) return Results.BadRequest();
+    var currentPage = Math.Clamp(page ?? 1, 1, 10000);
+    var query = db.PartTypes.AsNoTracking().AsQueryable();
+    if (!string.IsNullOrWhiteSpace(q))
+    {
+        var term = q.Trim();
+        var normalized = PartTypeSeed.Slug(term);
+        query = query.Where(x => EF.Functions.ILike(x.Name, $"%{term}%") || EF.Functions.ILike(x.Group, $"%{term}%") ||
+            (normalized != "" && (x.Slug.Contains(normalized) || x.GroupSlug.Contains(normalized))));
+    }
+    if (!string.IsNullOrWhiteSpace(group)) query = query.Where(x => x.GroupSlug == group);
+    var total = await query.CountAsync(ct);
+    var items = await query.OrderBy(x => x.Group).ThenBy(x => x.Name).Skip((currentPage - 1) * 24).Take(24)
+        .Select(x => new { x.Id, x.Name, x.Slug, x.Group, x.GroupSlug, x.ImageUrl }).ToListAsync(ct);
+    return Results.Ok(new { items, total, page = currentPage, pageSize = 24 });
+});
+api.MapGet("/part-types/groups", async (StoreDbContext db, CancellationToken ct) =>
+    await db.PartTypes.AsNoTracking().GroupBy(x => new { x.Group, x.GroupSlug })
+        .Select(x => new { Name = x.Key.Group, Slug = x.Key.GroupSlug, Count = x.Count() }).OrderBy(x => x.Name).ToListAsync(ct));
+api.MapGet("/part-types/{slug}", async (string slug, StoreDbContext db, CancellationToken ct) =>
+    await db.PartTypes.AsNoTracking().Where(x => x.Slug == slug)
+        .Select(x => new { x.Id, x.Name, x.Slug, x.Group, x.GroupSlug, x.ImageUrl }).FirstOrDefaultAsync(ct) is { } type
+            ? Results.Ok(type) : Results.NotFound());
 if (webhookEnabled)
 {
     api.MapPost("/payments/mercado-pago/webhooks", async (HttpContext context, StoreDbContext db, IPaymentProvider provider, PaymentNotificationQueue queue, ILogger<Program> logger, CancellationToken ct) => {
@@ -144,22 +169,22 @@ api.MapGet("/categories", async (StoreDbContext db, CatalogTaxonomyCache cache, 
 api.MapGet("/brands", async (StoreDbContext db, CatalogTaxonomyCache cache, CancellationToken ct) =>
     await cache.GetOrLoadAsync(CatalogTaxonomyCache.BrandsKey,
         () => db.Brands.AsNoTracking().Where(x => x.Slug != "marca-a-confirmar").OrderBy(x => x.Name).Select(x => new BrandOption(x.Id, x.Name, x.Slug)).ToListAsync(ct), ct));
-api.MapGet("/products", async Task<IResult> (CatalogReadRouter reader, string? q, string? category, string? brand, string? vehicleType, Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, bool? availableOnly, int? page, CancellationToken ct) => {
+api.MapGet("/products", async Task<IResult> (CatalogReadRouter reader, string? q, string? category, string? brand, string? vehicleType, Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, bool? availableOnly, bool? approvedOnly, int? page, CancellationToken ct) => {
     if (!CatalogQueries.Valid(q, minPrice, maxPrice))
         return Results.ValidationProblem(new Dictionary<string, string[]> { ["filters"] = ["Busca ou faixa de preço inválida."] });
     var currentPage = Math.Clamp(page ?? 1, 1, 10000);
     return await reader.ReadAsync<IResult>(async db => {
-        var query = CatalogQueries.Filter(db, q, category, brand, vehicleType, vehicleVersion, year, minPrice, maxPrice, availableOnly);
+        var query = CatalogQueries.Filter(db, q, category, brand, vehicleType, vehicleVersion, year, minPrice, maxPrice, availableOnly, approvedOnly);
         var total = await query.CountAsync(ct);
         var items = await query.OrderBy(x => x.Name).ThenBy(x => x.Id).Skip((currentPage - 1) * 24).Take(24).Select(x => new { x.Id, x.Name, x.Slug, x.Sku, Price = x.Published ? (decimal?)x.Price : null, Brand = x.Published ? x.Brand.Name : null, Category = x.Category.Name, Available = x.Published ? (int?)(x.Inventory.OnHand - x.Inventory.Reserved) : null, ImageUrl = x.Images.OrderBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault() }).ToListAsync(ct);
         return Results.Ok(new { items, total, page = currentPage, pageSize = 24 });
     }, ct);
 });
-api.MapGet("/products/facets", async Task<IResult> (CatalogReadRouter reader, string? q, string? category, string? brand, string? vehicleType, Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, bool? availableOnly, CancellationToken ct) => {
+api.MapGet("/products/facets", async Task<IResult> (CatalogReadRouter reader, string? q, string? category, string? brand, string? vehicleType, Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, bool? availableOnly, bool? approvedOnly, CancellationToken ct) => {
     if (!CatalogQueries.Valid(q, minPrice, maxPrice))
         return Results.ValidationProblem(new Dictionary<string, string[]> { ["filters"] = ["Busca ou faixa de preço inválida."] });
     return await reader.ReadAsync<IResult>(async db => {
-        var query = CatalogQueries.Filter(db, q, category, brand, vehicleType, vehicleVersion, year, minPrice, maxPrice, availableOnly);
+        var query = CatalogQueries.Filter(db, q, category, brand, vehicleType, vehicleVersion, year, minPrice, maxPrice, availableOnly, approvedOnly);
         var categories = await query.GroupBy(x => new { x.Category.Slug, x.Category.Name })
             .Select(x => new { x.Key.Slug, x.Key.Name, Count = x.Count() }).OrderByDescending(x => x.Count).Take(50).ToListAsync(ct);
         var brands = await query.GroupBy(x => new { x.Brand.Slug, x.Brand.Name })

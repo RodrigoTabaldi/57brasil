@@ -11,9 +11,10 @@ internal static class CatalogQueries
         (minPrice is null || maxPrice is null || maxPrice >= minPrice);
 
     internal static IQueryable<Product> Filter(StoreDbContext db, string? q, string? category, string? brand, string? vehicleType,
-        Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, bool? availableOnly)
+        Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, bool? availableOnly, bool? approvedOnly = null)
     {
         var query = db.Products.AsNoTracking().Where(x => x.Published || x.CatalogVisible);
+        if (approvedOnly == true) query = query.Where(x => x.Published);
         if (!string.IsNullOrWhiteSpace(q))
         {
             var search = q.Trim();

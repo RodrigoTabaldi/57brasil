@@ -56,10 +56,11 @@ public sealed class CatalogFiltersTests
         var brand = new Brand { Name = "Teste", Slug = $"teste-{Guid.NewGuid():N}" };
         var available = new Product { Name = "Peça disponível", Slug = $"teste-{Guid.NewGuid():N}", Sku = $"TEST-{Guid.NewGuid():N}", Category = category, Brand = brand, Price = 10m, Published = true, Inventory = new InventoryItem { OnHand = 1 } };
         var unavailable = new Product { Name = "Peça indisponível", Slug = $"teste-{Guid.NewGuid():N}", Sku = $"TEST-{Guid.NewGuid():N}", Category = category, Brand = brand, Price = 20m, Published = true, Inventory = new InventoryItem { OnHand = 0 } };
+        var draft = new Product { Name = "Peça em cadastro", Slug = $"teste-{Guid.NewGuid():N}", Sku = $"TEST-{Guid.NewGuid():N}", Category = category, Brand = brand, Price = 25m, CatalogVisible = true, Inventory = new InventoryItem { OnHand = 0 } };
         await using (var setup = new StoreDbContext(options))
         {
             await setup.Database.MigrateAsync();
-            setup.Products.AddRange(available, unavailable);
+            setup.Products.AddRange(available, unavailable, draft);
             await setup.SaveChangesAsync();
         }
         using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => {
@@ -76,6 +77,11 @@ public sealed class CatalogFiltersTests
         Assert.NotNull(facets);
         Assert.Equal(category.Slug, Assert.Single(facets.Categories).Slug);
         Assert.Equal(1, Assert.Single(facets.Brands).Count);
+        Assert.Equal(3, (await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?category={category.Slug}"))!.Total);
+        Assert.Equal(2, (await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?category={category.Slug}&approvedOnly=true"))!.Total);
+        var approvedFacets = await client.GetFromJsonAsync<Facets>($"/api/v1/products/facets?category={category.Slug}&approvedOnly=true");
+        Assert.Equal(2, Assert.Single(approvedFacets!.Categories).Count);
+        Assert.Equal(2, Assert.Single(approvedFacets.Brands).Count);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/v1/products?minPrice=20&maxPrice=10")).StatusCode);
     }
 

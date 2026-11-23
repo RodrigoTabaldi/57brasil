@@ -1,5 +1,11 @@
 
 const sources = [
+  ["Alternador (imagem ilustrativa)", "Angelsharum", "CC BY-SA 3.0", "Alternator.jpg"],
+  ["Disco de freio (imagem ilustrativa)", "Envy fstop", "CC BY-SA 4.0", "Disc_brakes.jpg"],
+  ["Farol (imagem ilustrativa)", "Prabhupuducherry", "CC BY-SA 3.0", "Car_headlamp.JPG"],
+  ["Escape (imagem ilustrativa)", "KoS", "Domínio público", "Pot_d%27échappement.jpeg"],
+  ["Cubo de roda (imagem ilustrativa)", "Cschirp", "CC BY 3.0", "Wheel_hub_assembly.jpg"],
+  ["Bomba de combustível (imagem ilustrativa do grupo Combustível e escape)", "A7N8X", "CC0 1.0", "Pompa_serbatoio_carburante.jpg"],
   ["Pastilha de freio", "Tiia Monto", "CC BY-SA 4.0", "Automobile_brake_pad.jpg"],
   ["Amortecedor", "TTTNIS", "Domínio público", "NISSAN_FUGA_Y50_front_shock_absorber.jpg"],
   ["Filtro de óleo", "Dvortygirl", "CC BY-SA 3.0", "Engine_oil_filter.JPG"],

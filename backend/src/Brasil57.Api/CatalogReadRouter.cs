@@ -31,6 +31,10 @@ internal sealed class CatalogReadRouter(StoreDbContext primary, IConfiguration c
         {
             logger.LogWarning(exception, "Réplica do catálogo indisponível; leitura no primary.");
         }
+        catch (InvalidOperationException exception) when (exception.InnerException is NpgsqlException and not PostgresException)
+        {
+            logger.LogWarning(exception, "Réplica do catálogo indisponível; leitura no primary.");
+        }
         catch (TimeoutException exception)
         {
             logger.LogWarning(exception, "Timeout da réplica do catálogo; leitura no primary.");
