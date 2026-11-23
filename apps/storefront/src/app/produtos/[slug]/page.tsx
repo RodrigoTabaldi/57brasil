@@ -20,7 +20,6 @@ export default async function ProductPage({ params }: Props) {
   const [product, applications] = await Promise.all([getProduct(slug), getApplications(slug).catch(() => null)]);
   if (!product) notFound();
   const image = product.images[0];
-  const buyable = product.price !== null && product.available !== null;
   return <main id="main-content" className="shell product-page product-showcase-page">
     <nav className="breadcrumb" aria-label="Navegação estrutural"><Link href="/">Início</Link><span>/</span><Link href="/produtos">Produtos</Link><span>/</span><span>{product.category}</span></nav>
     <div className="product-detail">
@@ -31,7 +30,7 @@ export default async function ProductPage({ params }: Props) {
         <Link className="product-showcase-category" href={`/produtos?categoria=${encodeURIComponent(product.categorySlug)}`}>{product.category}</Link>
         {product.shortDescription && <p>{product.shortDescription}</p>}
         <div className="product-codes"><span>SKU {product.sku}</span>{product.manufacturerCode && <span>Cód. fabricante {product.manufacturerCode}</span>}</div>
-        <div className="purchase-box">{buyable ? <><strong className="detail-price">{formatPrice(product.price!)}</strong><p className={product.available! > 0 ? "stock-ok" : "stock-out"}>{product.available! > 0 ? `Em estoque · ${product.available} disponíveis` : "Produto indisponível"}</p><AddToCart productId={product.id} available={product.available!} price={product.price!} slug={product.slug} /></> : <><strong>Preço sob consulta</strong><p id="purchase-unavailable">Preço, estoque e dados logísticos ainda não validados para venda.</p><button className="button" type="button" disabled aria-describedby="purchase-unavailable">COMPRAR</button></>}<ProductShare name={product.name} /></div>
+        <div className="purchase-box"><strong className="detail-price">{formatPrice(product.price)}</strong><p className="stock-ok">Em estoque · {product.available} disponíveis</p><AddToCart productId={product.id} available={product.available} price={product.price} slug={product.slug} /><ProductShare name={product.name} /></div>
         <Link className="back-link" href="/produtos"><ArrowLeft size={17} aria-hidden="true" /> Voltar ao catálogo</Link>
       </div>
     </div>

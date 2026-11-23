@@ -384,6 +384,43 @@ namespace Brasil57.Infrastructure.Migrations
                     b.ToTable("PartTypes");
                 });
 
+            modelBuilder.Entity("Brasil57.Domain.PartTypePurchaseRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PartTypeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("PartTypeId");
+
+                    b.HasIndex("UserId", "PartTypeId", "CreatedAt");
+
+                    b.ToTable("PartTypePurchaseRequests", t =>
+                        {
+                            t.HasCheckConstraint("ck_part_type_purchase_request_quantity", "\"Quantity\" > 0 AND \"Quantity\" <= 99");
+                        });
+                });
+
             modelBuilder.Entity("Brasil57.Domain.Payment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1046,6 +1083,23 @@ namespace Brasil57.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("Brasil57.Domain.PartTypePurchaseRequest", b =>
+                {
+                    b.HasOne("Brasil57.Domain.PartType", "PartType")
+                        .WithMany()
+                        .HasForeignKey("PartTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Brasil57.Infrastructure.StoreUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PartType");
                 });
 
             modelBuilder.Entity("Brasil57.Domain.Payment", b =>

@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Search } from "lucide-react";
 
-type Suggestion = { id: string; name: string; slug: string; group: string };
+type Suggestion = { id: string; name: string; slug: string; group: string; groupSlug: string };
 
 export function SearchBox() {
   const router = useRouter();
@@ -43,15 +44,15 @@ export function SearchBox() {
   }
 
   return <form className="search search-wrapper" action="/produtos" role="search">
-    <label className="sr-only" htmlFor="search">Buscar tipos de peças</label>
+    <label className="sr-only" htmlFor="search">Buscar peças cadastradas</label>
     <input id="search" name="q" type="search" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={keyDown}
       onFocus={() => { if (items.length) setOpen(true); }} onBlur={() => setTimeout(() => setOpen(false), 150)}
-      placeholder="Ex.: pastilha de freio…" autoComplete="off" role="combobox" aria-autocomplete="list" aria-expanded={open}
+      placeholder="Ex.: filtro de óleo…" autoComplete="off" role="combobox" aria-autocomplete="list" aria-expanded={open}
       aria-controls="search-suggestions" aria-activedescendant={active >= 0 ? `suggestion-${active}` : undefined} />
     <button type="submit" aria-label="Buscar"><Search size={21} aria-hidden="true" /></button>
     {open && <ul className="suggestions" id="search-suggestions" role="listbox">{items.length === 0
-      ? <li className="suggestion-empty">Nenhum tipo de peça encontrado</li>
-      : items.map((item, index) => <li role="option" aria-selected={index === active} id={`suggestion-${index}`} key={item.id}><a href={`/tipos/${item.slug}`}>{item.name}<small>{item.group}</small></a></li>)}</ul>}
+      ? <li className="suggestion-empty">Nenhuma peça encontrada</li>
+      : items.map((item, index) => <li role="option" aria-selected={index === active} id={`suggestion-${index}`} key={item.id}><Link href={`/tipos/${item.slug}`}>{item.name}<small>{item.group}</small></Link></li>)}</ul>}
     <span className="sr-only" aria-live="polite">{loading ? "Buscando…" : open ? `${items.length} sugestões encontradas` : ""}</span>
   </form>;
 }

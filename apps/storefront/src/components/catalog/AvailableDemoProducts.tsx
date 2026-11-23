@@ -12,7 +12,7 @@ export function AvailableDemoProducts({ name }: { name: string }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    const params = new URLSearchParams({ q: name, availableOnly: "true" });
+    const params = new URLSearchParams({ q: name });
     fetch(`/api/v1/products?${params}`, { signal: controller.signal, cache: "no-store" })
       .then(response => {
         if (!response.ok) throw new Error("Não foi possível consultar os produtos.");
@@ -30,7 +30,7 @@ export function AvailableDemoProducts({ name }: { name: string }) {
   if (matches === null) return <p role="status">Consultando produtos cadastrados…</p>;
   if (matches.length === 0) return <p>Nenhum produto cadastrado e disponível para compra nesta categoria.</p>;
 
-  return matches.filter((product): product is ProductSummary & { price: number; available: number } => product.price !== null && product.available !== null).map(product => <div className="demo-purchase-item" key={product.id}>
+  return matches.map(product => <div className="demo-purchase-item" key={product.id}>
     <Link href={`/produtos/${product.slug}`}>{product.name}</Link>
     <p>{product.brand} · SKU {product.sku}</p>
     <strong>{formatPrice(product.price)}</strong>

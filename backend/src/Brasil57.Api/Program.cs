@@ -89,7 +89,7 @@ if (args.Contains("--migrate", StringComparer.Ordinal))
 app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.Use(async (context, next) => {
-    if (context.Request.Path.StartsWithSegments("/api/v1/account") || context.Request.Path.StartsWithSegments("/api/v1/admin") || context.Request.Path.StartsWithSegments("/api/v1/cart"))
+    if (context.Request.Path.StartsWithSegments("/api/v1/account") || context.Request.Path.StartsWithSegments("/api/v1/admin") || context.Request.Path.StartsWithSegments("/api/v1/cart") || context.Request.Path.Value?.Contains("/purchase-requests", StringComparison.Ordinal) == true)
         context.Response.Headers.CacheControl = "no-store";
     await next(context);
 });
@@ -135,6 +135,18 @@ api.MapGet("/part-types/{slug}", async (string slug, StoreDbContext db, Cancella
     await db.PartTypes.AsNoTracking().Where(x => x.Slug == slug)
         .Select(x => new { x.Id, x.Name, x.Slug, x.Group, x.GroupSlug, x.ImageUrl }).FirstOrDefaultAsync(ct) is { } type
             ? Results.Ok(type) : Results.NotFound());
+api.MapPost("/part-types/{slug}/purchase-requests", async (string slug, HttpContext context, PartTypePurchaseRequestInput input, StoreDbContext db, CancellationToken ct) => {
+    if (!SameOrigin(context)) return Results.StatusCode(403);
+    if (input.Quantity is < 1 or > 99) return Results.ValidationProblem(new Dictionary<string, string[]> { ["quantity"] = ["Informe uma quantidade entre 1 e 99."] });
+    var userId = CustomerId(context);
+    if (userId is null) return Results.Unauthorized();
+    var partTypeId = await db.PartTypes.Where(x => x.Slug == slug).Select(x => (Guid?)x.Id).FirstOrDefaultAsync(ct);
+    if (partTypeId is null) return Results.NotFound();
+    var request = new PartTypePurchaseRequest { UserId = userId.Value, PartTypeId = partTypeId.Value, Quantity = input.Quantity };
+    db.PartTypePurchaseRequests.Add(request);
+    await db.SaveChangesAsync(ct);
+    return Results.Accepted(value: new { request.Id, message = "Solicitação registrada. A equipe confirmará preço e disponibilidade antes de concluir a compra." });
+}).RequireAuthorization().RequireRateLimiting("account");
 if (webhookEnabled)
 {
     api.MapPost("/payments/mercado-pago/webhooks", async (HttpContext context, StoreDbContext db, IPaymentProvider provider, PaymentNotificationQueue queue, ILogger<Program> logger, CancellationToken ct) => {
@@ -169,22 +181,22 @@ api.MapGet("/categories", async (StoreDbContext db, CatalogTaxonomyCache cache, 
 api.MapGet("/brands", async (StoreDbContext db, CatalogTaxonomyCache cache, CancellationToken ct) =>
     await cache.GetOrLoadAsync(CatalogTaxonomyCache.BrandsKey,
         () => db.Brands.AsNoTracking().Where(x => x.Slug != "marca-a-confirmar").OrderBy(x => x.Name).Select(x => new BrandOption(x.Id, x.Name, x.Slug)).ToListAsync(ct), ct));
-api.MapGet("/products", async Task<IResult> (CatalogReadRouter reader, string? q, string? category, string? brand, string? vehicleType, Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, bool? availableOnly, bool? approvedOnly, int? page, CancellationToken ct) => {
+api.MapGet("/products", async Task<IResult> (CatalogReadRouter reader, string? q, string? category, string? brand, string? vehicleType, Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, int? page, CancellationToken ct) => {
     if (!CatalogQueries.Valid(q, minPrice, maxPrice))
         return Results.ValidationProblem(new Dictionary<string, string[]> { ["filters"] = ["Busca ou faixa de preço inválida."] });
     var currentPage = Math.Clamp(page ?? 1, 1, 10000);
     return await reader.ReadAsync<IResult>(async db => {
-        var query = CatalogQueries.Filter(db, q, category, brand, vehicleType, vehicleVersion, year, minPrice, maxPrice, availableOnly, approvedOnly);
+        var query = CatalogQueries.Filter(db, q, category, brand, vehicleType, vehicleVersion, year, minPrice, maxPrice);
         var total = await query.CountAsync(ct);
-        var items = await query.OrderBy(x => x.Name).ThenBy(x => x.Id).Skip((currentPage - 1) * 24).Take(24).Select(x => new { x.Id, x.Name, x.Slug, x.Sku, Price = x.Published ? (decimal?)x.Price : null, Brand = x.Published ? x.Brand.Name : null, Category = x.Category.Name, Available = x.Published ? (int?)(x.Inventory.OnHand - x.Inventory.Reserved) : null, ImageUrl = x.Images.OrderBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault() }).ToListAsync(ct);
+        var items = await query.OrderBy(x => x.Name).ThenBy(x => x.Id).Skip((currentPage - 1) * 24).Take(24).Select(x => new { x.Id, x.Name, x.Slug, x.Sku, Price = x.Price, Brand = x.Brand.Name, Category = x.Category.Name, Available = x.Inventory.OnHand - x.Inventory.Reserved, ImageUrl = x.Images.OrderBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault() }).ToListAsync(ct);
         return Results.Ok(new { items, total, page = currentPage, pageSize = 24 });
     }, ct);
 });
-api.MapGet("/products/facets", async Task<IResult> (CatalogReadRouter reader, string? q, string? category, string? brand, string? vehicleType, Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, bool? availableOnly, bool? approvedOnly, CancellationToken ct) => {
+api.MapGet("/products/facets", async Task<IResult> (CatalogReadRouter reader, string? q, string? category, string? brand, string? vehicleType, Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, CancellationToken ct) => {
     if (!CatalogQueries.Valid(q, minPrice, maxPrice))
         return Results.ValidationProblem(new Dictionary<string, string[]> { ["filters"] = ["Busca ou faixa de preço inválida."] });
     return await reader.ReadAsync<IResult>(async db => {
-        var query = CatalogQueries.Filter(db, q, category, brand, vehicleType, vehicleVersion, year, minPrice, maxPrice, availableOnly, approvedOnly);
+        var query = CatalogQueries.Filter(db, q, category, brand, vehicleType, vehicleVersion, year, minPrice, maxPrice);
         var categories = await query.GroupBy(x => new { x.Category.Slug, x.Category.Name })
             .Select(x => new { x.Key.Slug, x.Key.Name, Count = x.Count() }).OrderByDescending(x => x.Count).Take(50).ToListAsync(ct);
         var brands = await query.GroupBy(x => new { x.Brand.Slug, x.Brand.Name })
@@ -193,7 +205,7 @@ api.MapGet("/products/facets", async Task<IResult> (CatalogReadRouter reader, st
     }, ct);
 });
 api.MapGet("/products/{slug}", async (string slug, StoreDbContext db, CancellationToken ct) => {
-    var product = await db.Products.AsNoTracking().Where(x => (x.Published || x.CatalogVisible) && x.Slug == slug).Select(x => new { x.Id, x.Name, x.Slug, x.Sku, x.ManufacturerCode, x.ShortDescription, x.Description, Price = x.Published ? (decimal?)x.Price : null, Brand = x.Published ? x.Brand.Name : null, BrandSlug = x.Published ? x.Brand.Slug : null, Category = x.Category.Name, CategorySlug = x.Category.Slug, x.WeightKg, x.HeightCm, x.WidthCm, x.LengthCm, Available = x.Published ? (int?)(x.Inventory.OnHand - x.Inventory.Reserved) : null, Images = x.Images.OrderBy(i => i.SortOrder).Select(i => new { i.Id, i.Url, i.AltText }).ToList() }).FirstOrDefaultAsync(ct);
+    var product = await CatalogQueries.Purchasable(db).Where(x => x.Slug == slug).Select(x => new { x.Id, x.Name, x.Slug, x.Sku, x.ManufacturerCode, x.ShortDescription, x.Description, Price = x.Price, Brand = x.Brand.Name, BrandSlug = x.Brand.Slug, Category = x.Category.Name, CategorySlug = x.Category.Slug, x.WeightKg, x.HeightCm, x.WidthCm, x.LengthCm, Available = x.Inventory.OnHand - x.Inventory.Reserved, Images = x.Images.OrderBy(i => i.SortOrder).Select(i => new { i.Id, i.Url, i.AltText }).ToList() }).FirstOrDefaultAsync(ct);
     return product is null ? Results.NotFound() : Results.Ok(product);
 });
 api.MapGet("/products/{slug}/applications", async (string slug, StoreDbContext db, CancellationToken ct) => await db.ProductApplications.AsNoTracking().Where(x => x.Product.Slug == slug && x.Product.Published && x.Product.CompatibilitySourceReference != null).OrderBy(x => x.VehicleVersion.Model.Make.Name).ThenBy(x => x.VehicleVersion.Model.Name).Select(x => new { Make = x.VehicleVersion.Model.Make.Name, Model = x.VehicleVersion.Model.Name, Version = x.VehicleVersion.Name, x.StartYear, x.EndYear, x.Restriction }).ToListAsync(ct));
@@ -203,7 +215,7 @@ api.MapPost("/products/{slug}/shipping-quote", async (string slug, HttpContext c
         return Results.ValidationProblem(new Dictionary<string, string[]> { ["cep"] = ["Informe um CEP com oito dígitos e quantidade entre 1 e 99."] });
     var provider = services.GetService<IShippingProvider>();
     if (provider is null) return Results.Problem("Frete não configurado.", statusCode: 503);
-    var product = await db.Products.AsNoTracking().Where(x => x.Published && x.Slug == slug)
+    var product = await CatalogQueries.Purchasable(db).Where(x => x.Slug == slug)
         .Select(x => new { x.Sku, x.Price, x.WeightKg, x.HeightCm, x.WidthCm, x.LengthCm, Available = x.Inventory.OnHand - x.Inventory.Reserved }).FirstOrDefaultAsync(ct);
     if (product is null) return Results.NotFound();
     if (input.Quantity > product.Available || product.WeightKg is null or <= 0 || product.HeightCm is null or <= 0 || product.WidthCm is null or <= 0 || product.LengthCm is null or <= 0)

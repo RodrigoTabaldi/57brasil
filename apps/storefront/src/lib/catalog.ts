@@ -1,5 +1,5 @@
-export type ProductSummary = { id: string; name: string; slug: string; sku: string; price: number | null; brand: string | null; category: string; available: number | null; imageUrl: string | null };
-export type ProductDetail = ProductSummary & { manufacturerCode: string | null; shortDescription: string | null; description: string | null; brandSlug: string | null; categorySlug: string; weightKg: number | null; heightCm: number | null; widthCm: number | null; lengthCm: number | null; images: { id: string; url: string; altText: string }[] };
+export type ProductSummary = { id: string; name: string; slug: string; sku: string; price: number; brand: string; category: string; available: number; imageUrl: string | null };
+export type ProductDetail = ProductSummary & { manufacturerCode: string | null; shortDescription: string | null; description: string | null; brandSlug: string; categorySlug: string; weightKg: number | null; heightCm: number | null; widthCm: number | null; lengthCm: number | null; images: { id: string; url: string; altText: string }[] };
 export type ProductPage = { items: ProductSummary[]; total: number; page: number; pageSize: number };
 export type ProductFacets = { categories: { slug: string; name: string; count: number }[]; brands: { slug: string; name: string; count: number }[] };
 export type PartType = { id: string; name: string; slug: string; group: string; groupSlug: string; imageUrl: string };

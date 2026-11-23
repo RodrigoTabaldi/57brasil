@@ -5,7 +5,7 @@ import { AuthModal, currentUser } from "./AuthModal";
 import { formatPrice } from "../../lib/catalog";
 
 type ShippingOption = { serviceId: string; name: string; price: number; deliveryDays: number };
-export function AddToCart({ productId, available, price, slug }: { productId: string; available: number; price?: number; slug?: string }) {
+export function AddToCart({ productId, available, price, slug, compact = false }: { productId: string; available: number; price?: number; slug?: string; compact?: boolean }) {
   const router = useRouter();
   const maximum = Math.min(99, Math.max(0, available));
   const [quantity, setQuantity] = useState("1");
@@ -70,6 +70,12 @@ export function AddToCart({ productId, available, price, slug }: { productId: st
     } catch { setStatus("Não foi possível cotar o frete. Confira o CEP e os dados logísticos do produto."); }
     finally { setQuoting(false); }
   }
+
+  if (compact) return <div className="purchase-actions quick-buy">
+    <button className="button" type="button" onClick={() => void add("buy")} disabled={pending || !valid}>{pending ? "Aguarde…" : "COMPRAR"}</button>
+    <p role="status" aria-live="polite">{status || (!valid && maximum > 0 ? "Informe uma quantidade válida." : "")}</p>
+    {auth && <AuthModal onClose={() => { intent.current = null; setAuth(false); }} onSuccess={async () => { setAuth(false); await put(); }} />}
+  </div>;
 
   return <div className="purchase-actions">
     <><label htmlFor={`product-quantity-${productId || "unavailable"}`}>Quantidade</label><div className="quantity-control">

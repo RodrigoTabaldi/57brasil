@@ -21,5 +21,5 @@ export function CatalogImage({ src, alt, sizes, priority = false }: Props) {
     </div>;
   }
 
-  return <Image src={src} alt={alt} fill sizes={sizes} priority={priority} onError={() => setFailed(true)} />;
+  return <Image src={src} alt={alt} fill sizes={sizes} priority={priority} unoptimized={src.startsWith("https://")} onError={() => setFailed(true)} />;
 }

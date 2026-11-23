@@ -1,26 +1,31 @@
-import Link from "next/link";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPartType } from "@/lib/catalog";
 import { CatalogImage } from "@/components/catalog/CatalogImage";
+import { PartTypePurchaseButton } from "@/components/catalog/PartTypePurchaseButton";
+import { getPartType } from "@/lib/catalog";
 
 type Props = { params: Promise<{ slug: string }> };
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const item = await getPartType((await params).slug);
-  return { title: item ? `${item.name} | Tipo de peça` : "Tipo de peça não encontrado" };
+  return { title: item ? `${item.name} | Catálogo 57 Brasil` : "Peça não encontrada" };
 }
+
 export default async function PartTypeDetail({ params }: Props) {
   const item = await getPartType((await params).slug);
   if (!item) notFound();
-  return <main id="main-content" className="shell product-page part-type-detail">
+
+  return <main id="main-content" className="shell catalog-page part-type-detail-page">
     <nav className="breadcrumb" aria-label="Navegação estrutural"><Link href="/">Início</Link><span>/</span><Link href="/produtos">Catálogo</Link><span>/</span><span>{item.name}</span></nav>
-    <div className="product-detail">
-      <div className="product-image part-type-detail-image"><CatalogImage src={item.imageUrl} alt={`Imagem ilustrativa de ${item.name}, do grupo ${item.group}`} sizes="(max-width: 700px) 100vw, 50vw" /></div>
-      <div className="product-info"><span className="section-kicker">PEÇA PARA CONSULTA</span><h1>{item.name}</h1>
-        <p>{item.group}</p>
-        <div className="purchase-box"><strong>Sobre este tipo de peça</strong><p>Este cadastro identifica uma categoria de peça para ajudar na sua busca. A foto é ilustrativa; a escolha de um item específico e sua aplicação no veículo precisam ser confirmadas antes da compra.</p><Link href="/creditos-imagens">Ver créditos das imagens</Link></div>
-        <Link className="back-link" href="/produtos">Voltar ao catálogo</Link>
+    <Link className="back-link" href={`/produtos?grupo=${encodeURIComponent(item.groupSlug)}`}>Voltar ao grupo {item.group}</Link>
+    <article className="part-type-detail">
+      <div className="part-type-detail-image"><CatalogImage src={item.imageUrl} alt={`Imagem ilustrativa de ${item.name}`} sizes="(max-width: 800px) 100vw, 50vw" priority /></div>
+      <div className="part-type-detail-info"><span className="section-kicker">{item.group}</span><h1>{item.name}</h1><p className="part-type-status">Item fictício do catálogo · preço e disponibilidade serão confirmados pela equipe.</p>
+        <section className="part-type-purchase-box" aria-labelledby="purchase-title"><h2 id="purchase-title">Solicite a compra</h2><p>O botão registra seu interesse. A equipe confirma o produto, o preço e a disponibilidade antes de concluir qualquer compra.</p><PartTypePurchaseButton slug={item.slug} /></section>
+        <p className="part-type-image-note">A imagem é ilustrativa e segue o padrão visual do catálogo; ela não confirma fabricante, aplicação ou compatibilidade.</p>
+        <Link className="inline-link" href="/creditos-imagens">Ver créditos das imagens</Link>
       </div>
-    </div>
+    </article>
   </main>;
 }

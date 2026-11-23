@@ -7,6 +7,7 @@ namespace Brasil57.Infrastructure;
 public sealed class StoreDbContext(DbContextOptions<StoreDbContext> options) : IdentityDbContext<StoreUser, IdentityRole<Guid>, Guid>(options)
 {
     public DbSet<PartType> PartTypes => Set<PartType>();
+    public DbSet<PartTypePurchaseRequest> PartTypePurchaseRequests => Set<PartTypePurchaseRequest>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Brand> Brands => Set<Brand>();
     public DbSet<Product> Products => Set<Product>();
@@ -31,6 +32,7 @@ public sealed class StoreDbContext(DbContextOptions<StoreDbContext> options) : I
     {
         base.OnModelCreating(model);
         model.Entity<PartType>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.Slug).IsUnique(); e.HasIndex(x => x.GroupSlug); e.Property(x => x.Name).HasMaxLength(160); e.Property(x => x.Slug).HasMaxLength(180); e.Property(x => x.Group).HasMaxLength(100); e.Property(x => x.GroupSlug).HasMaxLength(120); e.Property(x => x.Status).HasMaxLength(80); e.Property(x => x.ImageUrl).HasMaxLength(300); });
+        model.Entity<PartTypePurchaseRequest>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.CreatedAt); e.HasIndex(x => new { x.UserId, x.PartTypeId, x.CreatedAt }); e.Property(x => x.Status).HasMaxLength(40); e.HasOne<StoreUser>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade); e.HasOne(x => x.PartType).WithMany().HasForeignKey(x => x.PartTypeId).OnDelete(DeleteBehavior.Restrict); e.ToTable(t => t.HasCheckConstraint("ck_part_type_purchase_request_quantity", "\"Quantity\" > 0 AND \"Quantity\" <= 99")); });
         model.Entity<AuditLog>(e => { e.HasKey(x => x.Id); e.Property(x => x.Action).HasMaxLength(80); e.Property(x => x.Entity).HasMaxLength(80); e.Property(x => x.EvidenceSnapshot).HasColumnType("jsonb"); e.HasIndex(x => x.CreatedAt); });
         model.Entity<DailyVisit>(e => { e.HasKey(x => x.Day); e.ToTable(t => t.HasCheckConstraint("ck_daily_visit_count", "\"Count\" >= 0")); });
         model.Entity<Category>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.Slug).IsUnique(); e.Property(x => x.Name).HasMaxLength(120); e.Property(x => x.Slug).HasMaxLength(140); e.HasOne(x => x.Parent).WithMany().HasForeignKey(x => x.ParentId).OnDelete(DeleteBehavior.Restrict); });
