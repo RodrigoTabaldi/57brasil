@@ -12,15 +12,25 @@ public static class CatalogSeed
         var path = Path.Combine(AppContext.BaseDirectory, "catalog-products.json");
         var products = JsonSerializer.Deserialize<List<InitialProduct>>(await File.ReadAllTextAsync(path), JsonSerializerOptions.Web)
             ?? throw new InvalidOperationException("Catálogo inicial inválido.");
-        var existing = (await db.Products.Select(x => x.Sku).ToListAsync()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var existing = await db.Products.Include(x => x.Category).ToDictionaryAsync(x => x.Sku, StringComparer.OrdinalIgnoreCase);
         var categories = await db.Categories.ToDictionaryAsync(x => x.Slug);
         var brands = await db.Brands.ToDictionaryAsync(x => x.Slug);
         foreach (var item in products)
         {
-            if (existing.Contains(item.Sku)) continue;
             var categorySlug = PartTypeSeed.Slug(item.Category);
             if (!categories.TryGetValue(categorySlug, out var category))
                 categories[categorySlug] = category = new Category { Name = item.Category, Slug = categorySlug };
+            var subcategorySlug = $"{categorySlug}-{PartTypeSeed.Slug(item.Subcategory)}";
+            if (!categories.TryGetValue(subcategorySlug, out var subcategory))
+                categories[subcategorySlug] = subcategory = new Category { Name = item.Subcategory, Slug = subcategorySlug, Parent = category };
+            else if (subcategory.Parent != category && subcategory.ParentId != category.Id)
+                throw new InvalidOperationException($"Subcategoria com hierarquia conflitante: {subcategorySlug}");
+            if (existing.TryGetValue(item.Sku, out var product))
+            {
+                // Only migrate the original draft classification; preserve published or manually moved products.
+                if (!product.Published && product.CategoryId == category.Id) product.Category = subcategory;
+                continue;
+            }
             var brandSlug = PartTypeSeed.Slug(item.Brand);
             if (!brands.TryGetValue(brandSlug, out var brand))
                 brands[brandSlug] = brand = new Brand { Name = item.Brand, Slug = brandSlug };
@@ -31,7 +41,7 @@ public static class CatalogSeed
                 _ => null
             };
             db.Products.Add(new Product { Name = item.Name, Slug = item.Sku.ToLowerInvariant(), Sku = item.Sku,
-                ManufacturerCode = item.ManufacturerCode, Category = category, Brand = brand, Price = item.ReferencePrice,
+                ManufacturerCode = item.ManufacturerCode, Category = subcategory, Brand = brand, Price = item.ReferencePrice,
                 Published = false, CatalogVisible = true, ShortDescription = "Consulte a aplicação no catálogo do fabricante antes da compra.",
                 Description = $"{item.Subcategory}. Unidade: {item.Unit}. Consulte o fabricante para confirmar a aplicação.",
                 Inventory = new InventoryItem { OnHand = 0 }, Images = [new ProductImage { Url = image is null ? "/catalog-oil.svg" : $"/demo-products/{image}.png", AltText = $"Imagem ilustrativa de {item.Subcategory}" }] });

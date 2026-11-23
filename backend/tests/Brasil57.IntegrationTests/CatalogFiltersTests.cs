@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Brasil57.Api;
 using Brasil57.Domain;
 using Brasil57.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
@@ -11,6 +12,33 @@ namespace Brasil57.IntegrationTests;
 
 public sealed class CatalogFiltersTests
 {
+    [Fact]
+    public async Task Seed_classifies_products_and_catalog_filters_parent_and_subcategory()
+    {
+        var connection = Environment.GetEnvironmentVariable("BRASIL57_TEST_DATABASE")
+            ?? throw new InvalidOperationException("Defina BRASIL57_TEST_DATABASE para um PostgreSQL descartável.");
+        var options = new DbContextOptionsBuilder<StoreDbContext>().UseNpgsql(connection).Options;
+        await using (var db = new StoreDbContext(options))
+        {
+            await db.Database.MigrateAsync();
+            await CatalogSeed.EnsureDepartmentsAsync(db);
+            await CatalogSeed.EnsureProductsAsync(db);
+            await CatalogSeed.EnsureProductsAsync(db);
+            var product = await db.Products.Include(x => x.Category).ThenInclude(x => x.Parent).SingleAsync(x => x.Sku == "57BR-0010");
+            Assert.Equal("filtros-filtro-de-oleo", product.Category.Slug);
+            Assert.Equal("filtros", product.Category.Parent!.Slug);
+        }
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => {
+            builder.UseSetting("ConnectionStrings:Default", connection);
+            builder.UseSetting("DataProtection:KeyPath", Path.Combine(Path.GetTempPath(), $"brasil57-seed-{Guid.NewGuid():N}"));
+        });
+        using var client = factory.CreateClient();
+        var parent = await client.GetFromJsonAsync<ProductPage>("/api/v1/catalog-items?group=filtros");
+        var child = await client.GetFromJsonAsync<ProductPage>("/api/v1/catalog-items?group=filtros-filtro-de-oleo");
+        Assert.True(parent!.Total >= 33);
+        Assert.Equal(9, child!.Total);
+    }
+
     [Fact]
     public async Task Catalog_vehicle_filter_requires_recorded_source_and_combines_category()
     {

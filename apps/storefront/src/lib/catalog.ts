@@ -5,6 +5,12 @@ export type ProductFacets = { categories: { slug: string; name: string; count: n
 export type PartType = { id: string; name: string; slug: string; group: string; groupSlug: string; imageUrl: string; referencePrice: number; sku?: string; manufacturerCode?: string; brand?: string; description?: string; shortDescription?: string };
 export type PartTypePage = { items: PartType[]; total: number; page: number; pageSize: number; vehicleTypeApplied?: string | null };
 export type PartTypeGroup = { name: string; slug: string; count: number };
+export type CatalogCategory = PartTypeGroup & { groupSlug: string };
+export function catalogItemImage(item: PartType): string {
+  return item.groupSlug === "oleos-e-lubrificantes" && item.imageUrl === "/catalog-oil.svg"
+    ? "/demo-parts/motor-oil-white.png"
+    : item.imageUrl;
+}
 const baseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5250";
 export async function getPartTypes(params: URLSearchParams): Promise<PartTypePage> {
   const response = await fetch(`${baseUrl}/api/v1/catalog-items?${params}`, { cache: "no-store" });
@@ -18,6 +24,11 @@ export async function getPartTypeGroups(): Promise<PartTypeGroup[]> {
   const response = await fetch(`${baseUrl}/api/v1/catalog-items/groups`, { cache: "no-store" });
   if (!response.ok) throw new Error("Não foi possível carregar os grupos de peças.");
   return response.json() as Promise<PartTypeGroup[]>;
+}
+export async function getCatalogCategories(): Promise<CatalogCategory[]> {
+  const response = await fetch(`${baseUrl}/api/v1/catalog-items/categories`, { cache: "no-store" });
+  if (!response.ok) throw new Error("Não foi possível carregar as categorias de peças.");
+  return response.json() as Promise<CatalogCategory[]>;
 }
 export async function getPartType(slug: string): Promise<PartType | null> {
   const response = await fetch(`${baseUrl}/api/v1/catalog-items/${encodeURIComponent(slug)}`, { cache: "no-store" });
