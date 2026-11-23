@@ -86,7 +86,7 @@ public static partial class AdminEndpoints
             var query = db.Products.AsNoTracking();
             if (!string.IsNullOrWhiteSpace(q)) { var term = q.Trim(); if (term.Length > 120) return Results.BadRequest(); query = query.Where(x => EF.Functions.ILike(x.Name, $"%{term}%") || EF.Functions.ILike(x.Sku, $"%{term}%")); }
             var total = await query.CountAsync(ct);
-            var items = await query.OrderBy(x => x.Name).ThenBy(x => x.Id).Skip((currentPage - 1) * 50).Take(50).Select(x => new { x.Id, x.Name, x.Sku, x.Slug, x.Price, x.Published, x.BrandId, x.ManufacturerCode, x.ShortDescription, x.Description, x.PriceSourceReference, x.StockSourceReference, x.CompatibilitySourceReference, x.SupplierConfirmedAt, x.ApplicationNotes, x.WeightKg, x.HeightCm, x.WidthCm, x.LengthCm, ImageUrl = x.Images.OrderBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault(), Available = x.Inventory.OnHand - x.Inventory.Reserved }).ToListAsync(ct);
+            var items = await query.OrderBy(x => x.Name).ThenBy(x => x.Id).Skip((currentPage - 1) * 50).Take(50).Select(x => new { x.Id, x.Name, x.Sku, x.Slug, x.Price, x.Published, x.BrandId, x.ManufacturerCode, x.ShortDescription, x.Description, x.PriceSourceReference, x.StockSourceReference, x.CompatibilitySourceReference, x.VehicleFamilies, x.SupplierConfirmedAt, x.ApplicationNotes, x.WeightKg, x.HeightCm, x.WidthCm, x.LengthCm, ImageUrl = x.Images.OrderBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault(), Available = x.Inventory.OnHand - x.Inventory.Reserved }).ToListAsync(ct);
             return Results.Ok(new { items, total, page = currentPage, pageSize = 50 });
         });
         protectedAdmin.MapGet("/categories", async (StoreDbContext db, string? q, CancellationToken ct) => await db.Categories.AsNoTracking().Where(x => q == null || EF.Functions.ILike(x.Name, $"%{q}%")).OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, x.Slug, x.Active }).ToListAsync(ct));
@@ -174,6 +174,11 @@ public static partial class AdminEndpoints
             if (input.PriceSourceReference is not null) product.PriceSourceReference = ReferenceOrNull(input.PriceSourceReference);
             if (input.StockSourceReference is not null) product.StockSourceReference = ReferenceOrNull(input.StockSourceReference);
             if (input.CompatibilitySourceReference is not null) product.CompatibilitySourceReference = ReferenceOrNull(input.CompatibilitySourceReference);
+            if (input.VehicleFamilies is not null) {
+                if (input.VehicleFamilies.Any(x => x is not ("carro" or "moto" or "caminhao"))) return Results.BadRequest();
+                if (input.VehicleFamilies.Length > 0 && !ProductPublicationPolicy.ValidReference(product.CompatibilitySourceReference)) return Results.ValidationProblem(new Dictionary<string, string[]> { ["vehicleFamilies"] = ["Informe o documento que confirma as aplicações veiculares."] });
+                product.VehicleFamilies = input.VehicleFamilies.Distinct().ToArray();
+            }
             if (!ValidOptionalReference(product.PriceSourceReference) || !ValidOptionalReference(product.StockSourceReference) || !ValidOptionalReference(product.CompatibilitySourceReference)) return Results.BadRequest();
             if (input.ApplicationNotes is not null) product.ApplicationNotes = input.ApplicationNotes.Trim();
             if (input.SupplierConfirmedAt is not null) product.SupplierConfirmedAt = input.SupplierConfirmedAt;
@@ -227,7 +232,7 @@ public sealed record PartTypePurchaseRequestInput(int Quantity = 1);
 
 
 
-public sealed record UpdateProduct(string? Name, decimal? Price, bool? Published, string? Sku = null, Guid? BrandId = null, string? ManufacturerCode = null, string? ShortDescription = null, string? Description = null, decimal? WeightKg = null, decimal? HeightCm = null, decimal? WidthCm = null, decimal? LengthCm = null, string? PriceSourceReference = null, string? StockSourceReference = null, string? CompatibilitySourceReference = null, DateTimeOffset? SupplierConfirmedAt = null, string? ApplicationNotes = null);
+public sealed record UpdateProduct(string? Name, decimal? Price, bool? Published, string? Sku = null, Guid? BrandId = null, string? ManufacturerCode = null, string? ShortDescription = null, string? Description = null, decimal? WeightKg = null, decimal? HeightCm = null, decimal? WidthCm = null, decimal? LengthCm = null, string? PriceSourceReference = null, string? StockSourceReference = null, string? CompatibilitySourceReference = null, DateTimeOffset? SupplierConfirmedAt = null, string? ApplicationNotes = null, string[]? VehicleFamilies = null);
 public sealed record StockAdjustment(int Delta, string SourceReference);
 
 

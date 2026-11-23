@@ -19,12 +19,15 @@ internal static class CatalogQueries
         var query = Purchasable(db);
         if (!string.IsNullOrWhiteSpace(q))
         {
-            var search = q.Trim();
-            query = query.Where(x => EF.Functions.ILike(x.Name, $"%{search}%") || EF.Functions.ILike(x.Sku, $"%{search}%") ||
-                (x.ManufacturerCode != null && EF.Functions.ILike(x.ManufacturerCode, $"%{search}%")) ||
-                EF.Functions.ILike(x.Brand.Name, $"%{search}%") || EF.Functions.ILike(x.Category.Name, $"%{search}%"));
+            var search = q.Trim().Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
+            var pattern = $"%{search}%";
+            query = query.Where(x => EF.Functions.ILike(x.Name, pattern, "\\") || EF.Functions.ILike(x.Sku, pattern, "\\") ||
+                (x.ManufacturerCode != null && EF.Functions.ILike(x.ManufacturerCode, pattern, "\\")) ||
+                (x.ShortDescription != null && EF.Functions.ILike(x.ShortDescription, pattern, "\\")) ||
+                (x.Description != null && EF.Functions.ILike(x.Description, pattern, "\\")) ||
+                EF.Functions.ILike(x.Brand.Name, pattern, "\\") || EF.Functions.ILike(x.Category.Name, pattern, "\\"));
         }
-        if (!string.IsNullOrWhiteSpace(category)) query = query.Where(x => x.Category.Slug == category);
+        if (!string.IsNullOrWhiteSpace(category)) query = query.Where(x => x.Category.Slug == category || (x.Category.Parent != null && x.Category.Parent.Slug == category));
         if (!string.IsNullOrWhiteSpace(vehicleType))
         {
             query = query.Where(x => x.VehicleFamilies.Contains(vehicleType));
