@@ -1,0 +1,26 @@
+{
+  auto_https off
+  admin off
+}
+:{$PORT} {
+  header {
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    X-Frame-Options "DENY"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    -Server
+  }
+  @private path /api/v1/account/* /api/v1/admin/* /api/v1/cart* /conta /conta/*
+  header @private Cache-Control "no-store"
+  @backend path /api/* /health/*
+  handle @backend {
+    reverse_proxy 127.0.0.1:8081 {
+      header_up X-Forwarded-Proto https
+      header_up X-Forwarded-Host {host}
+      header_up X-Forwarded-For {remote_host}
+    }
+  }
+  handle {
+    reverse_proxy 127.0.0.1:3000
+  }
+}

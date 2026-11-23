@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: brasil57
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile.render
+    healthCheckPath: /health/live
+    envVars:
+      - key: ConnectionStrings__Default
+        sync: false
+      - key: Payment__EnableWebhook
+        value: "false"

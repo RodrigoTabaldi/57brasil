@@ -1,0 +1,30 @@
+FROM node:24-bookworm-slim AS storefront-build
+WORKDIR /src
+COPY apps/storefront/package*.json ./
+RUN npm ci
+COPY apps/storefront/ ./
+ENV API_INTERNAL_URL=http://127.0.0.1:8081
+RUN npm run build
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS api-build
+WORKDIR /src
+COPY backend/ ./
+RUN dotnet publish src/Brasil57.Api/Brasil57.Api.csproj -c Release -o /out
+
+FROM caddy:2-alpine AS caddy
+FROM node:24-bookworm-slim AS node
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+WORKDIR /app
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=caddy /usr/bin/caddy /usr/local/bin/caddy
+COPY --from=api-build /out /app/api
+COPY --from=storefront-build /src/.next/standalone /app/storefront
+COPY --from=storefront-build /src/.next/static /app/storefront/.next/static
+COPY --from=storefront-build /src/public /app/storefront/public
+COPY infrastructure/render/Caddyfile /app/Caddyfile
+COPY infrastructure/render/start.sh /app/start.sh
+ENV ASPNETCORE_ENVIRONMENT=Production ASPNETCORE_URLS=http://127.0.0.1:8081
+ENV NODE_ENV=production HOSTNAME=127.0.0.1 API_INTERNAL_URL=http://127.0.0.1:8081
+ENV DataProtection__KeyPath=/tmp/brasil57-keys PORT=10000
+EXPOSE 10000
+CMD ["bash", "/app/start.sh"]
