@@ -81,6 +81,16 @@ public static partial class AdminEndpoints
             return Results.Ok(new { total = await query.CountAsync(ct), page = currentPage, pageSize = 25,
                 items = await query.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id).Skip((currentPage - 1) * 25).Take(25).ToListAsync(ct) });
         });
+        protectedAdmin.MapGet("/product-purchase-requests", async (StoreDbContext db, int? page, CancellationToken ct) => {
+            var currentPage = Math.Clamp(page ?? 1, 1, 100000);
+            var query = from request in db.ProductPurchaseRequests.AsNoTracking()
+                        join user in db.Users.AsNoTracking() on request.UserId equals user.Id
+                        join product in db.Products.AsNoTracking() on request.ProductId equals product.Id
+                        select new { request.Id, request.ProductId, product.Name, product.Sku, request.Quantity, request.Status, request.CreatedAt, user.FullName, user.Email,
+                            request.Cep, request.Street, request.Number, request.Complement, request.Neighborhood, request.City, request.State };
+            return Results.Ok(new { total = await query.CountAsync(ct), page = currentPage, pageSize = 25,
+                items = await query.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id).Skip((currentPage - 1) * 25).Take(25).ToListAsync(ct) });
+        });
         protectedAdmin.MapGet("/products", async (StoreDbContext db, string? q, int? page, CancellationToken ct) => {
             var currentPage = Math.Clamp(page ?? 1, 1, 100000);
             var query = db.Products.AsNoTracking();
@@ -227,6 +237,7 @@ public sealed record AdminBrand(string Name, string Slug);
 public sealed record AdminProduct(string Name, string Slug, string Sku, Guid CategoryId, Guid BrandId, decimal Price, int Stock, bool Published, decimal? WeightKg, decimal? HeightCm, decimal? WidthCm, decimal? LengthCm, string[]? VehicleFamilies = null, string? PriceSourceReference = null, string? StockSourceReference = null, string? CompatibilitySourceReference = null, DateTimeOffset? SupplierConfirmedAt = null, string? ApplicationNotes = null);
 public sealed record AdminProductImage(string Url, string AltText, int SortOrder);
 public sealed record PartTypePurchaseRequestInput(int Quantity = 1);
+public sealed record ProductPurchaseRequestInput(int Quantity, string? Cep, string? Street, string? Number, string? Complement, string? Neighborhood, string? City, string? State);
 
 
 

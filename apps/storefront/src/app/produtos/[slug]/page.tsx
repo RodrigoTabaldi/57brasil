@@ -7,6 +7,7 @@ import { AddToCart } from "@/components/ui/AddToCart";
 import { ProductShare } from "@/components/ui/ProductShare";
 import { DemoImageViewer } from "@/components/catalog/DemoImageViewer";
 import { CatalogRetryButton } from "@/components/catalog/CatalogRetryButton";
+import { ProductPurchaseRequest } from "@/components/catalog/ProductPurchaseRequest";
 
 type Props = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -30,7 +31,7 @@ export default async function ProductPage({ params }: Props) {
         <Link className="product-showcase-category" href={`/produtos?categoria=${encodeURIComponent(product.categorySlug)}`}>{product.category}</Link>
         {product.shortDescription && <p>{product.shortDescription}</p>}
         <div className="product-codes"><span>SKU {product.sku}</span>{product.manufacturerCode && <span>Cód. fabricante {product.manufacturerCode}</span>}</div>
-        <div className="purchase-box"><strong className="detail-price">{formatPrice(product.price)}</strong><p className="stock-ok">Em estoque · {product.available} disponíveis</p><AddToCart productId={product.id} available={product.available} price={product.price} slug={product.slug} /><ProductShare name={product.name} /></div>
+        <div className="purchase-box"><strong className="detail-price">{formatPrice(product.price)}</strong><p className="stock-ok">Em estoque · {product.available} disponíveis</p><AddToCart productId={product.id} available={product.available} price={product.price} slug={product.slug} /><ProductPurchaseRequest productId={product.id} /><ProductShare name={product.name} /></div>
         <Link className="back-link" href="/produtos"><ArrowLeft size={17} aria-hidden="true" /> Voltar ao catálogo</Link>
       </div>
     </div>

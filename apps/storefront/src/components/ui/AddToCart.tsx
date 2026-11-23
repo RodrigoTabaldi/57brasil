@@ -38,7 +38,7 @@ export function AddToCart({ productId, available, price, slug, compact = false }
       intent.current = null;
       operationKey.current = "";
       window.dispatchEvent(new Event("cart-updated"));
-      if (action === "buy") router.push("/carrinho");
+      if (action === "buy") router.push("/checkout");
       else setStatus("Produto adicionado ao carrinho.");
     } catch {
       setStatus("Não foi possível adicionar esta quantidade. Confira o estoque e tente novamente.");

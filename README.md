@@ -40,7 +40,7 @@ A 57 Brasil reúne busca de peças, catálogo por categoria e marca, seleção p
 ### Pré-requisitos
 
 - Docker com o plugin Compose e daemon em execução.
-- Portas `8088` livres no computador.
+- Porta `3000` livre no computador.
 - Para executar serviços fora dos containers: Node.js compatível com Next.js 16 e SDK .NET 10.
 
 ### Subir o ambiente local
@@ -59,9 +59,9 @@ docker compose up --build
 
 | Endereço | Uso |
 | --- | --- |
-| [http://localhost:8088](http://localhost:8088) | Storefront |
-| [http://localhost:8088/health/live](http://localhost:8088/health/live) | Processo da API em execução |
-| [http://localhost:8088/health/ready](http://localhost:8088/health/ready) | Prontidão da API e acesso ao banco |
+| [http://localhost:3000](http://localhost:3000) | Storefront |
+| [http://localhost:3000/health/live](http://localhost:3000/health/live) | Processo da API em execução |
+| [http://localhost:3000/health/ready](http://localhost:3000/health/ready) | Prontidão da API e acesso ao banco |
 
 O Compose executa as migrations em um serviço próprio antes de iniciar as duas instâncias da API. Em um banco com dados, faça backup e revise as migrations antes de aplicá-las.
 
@@ -78,7 +78,7 @@ docker compose down
 
 ```mermaid
 flowchart LR
-    U["Navegador"] --> C["Caddy :8088"]
+    U["Navegador"] --> C["Caddy :3000"]
     C --> F["Storefront<br/>Next.js"]
     C --> A1["API 1<br/>ASP.NET Core"]
     C --> A2["API 2<br/>ASP.NET Core"]
@@ -179,9 +179,9 @@ docker compose config --quiet
 
 Os testes de integração executam migrations e deixam dados no PostgreSQL informado em `BRASIL57_TEST_DATABASE`: use **somente um banco descartável**. Os testes opcionais de infraestrutura usam `BRASIL57_TEST_REDIS_PASSWORD` e `BRASIL57_TEST_RABBIT_PASSWORD` quando definidos. Consulte [banco de dados](docs/DATABASE.md) para detalhes.
 
-Para desenvolver somente a interface, rode `npm run dev --prefix apps/storefront`. Páginas que consultam o catálogo precisam de uma API acessível; `API_INTERNAL_URL` define o endereço usado pelo frontend no servidor.
+Para desenvolver somente a interface, rode `npm run dev --prefix apps/storefront` com a porta 3000 livre. A API deve estar acessível em `http://127.0.0.1:5250`; `API_INTERNAL_URL` define o endereço usado pelo frontend no servidor. Se alterar `API_LOCAL_PORT` no Compose, atualize também `API_INTERNAL_URL` em `apps/storefront/.env.local`. Não execute o proxy do Compose e o frontend local simultaneamente na porta 3000.
 
-Para abrir o catálogo completo localmente, configure `POSTGRES_PASSWORD` no `.env` e execute `docker compose up -d --build proxy redis`. O site estará em `http://localhost:8088/produtos`. A etapa `migrate` aplica a migration e insere os 100 tipos de peças no PostgreSQL; novas execuções não alteram registros já cadastrados. Se a porta 5250 estiver ocupada, defina `API_LOCAL_PORT` no `.env` para outra porta livre.
+Para abrir o catálogo completo localmente, configure `POSTGRES_PASSWORD` no `.env` e execute `docker compose up -d --build proxy redis`. O site estará em `http://localhost:3000/produtos`. A etapa `migrate` aplica a migration e insere os 100 tipos de peças no PostgreSQL; novas execuções não alteram registros já cadastrados. Se a porta 5250 estiver ocupada, defina `API_LOCAL_PORT` no `.env` para outra porta livre.
 
 ## Antes de operar comercialmente
 

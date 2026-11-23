@@ -2,7 +2,7 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 
 const mode = __ENV.MODE || 'smoke';
-const baseUrl = __ENV.BASE_URL || 'http://host.docker.internal:8088';
+const baseUrl = __ENV.BASE_URL || 'http://host.docker.internal:3000';
 const category = __ENV.CATEGORY || '';
 const brand = __ENV.BRAND || '';
 const query = __ENV.QUERY || 'filtro';
