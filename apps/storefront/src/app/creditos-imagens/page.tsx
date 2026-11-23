@@ -1,5 +1,6 @@
 
 const sources = [
+  ["Óleo de motor (imagem ilustrativa, editada com IA)", "Interiot, Where next Columbus? e H Padleckas", "Domínio público", "Motor_oil.JPG"],
   ["Alternador (imagem ilustrativa)", "Angelsharum", "CC BY-SA 3.0", "Alternator.jpg"],
   ["Disco de freio (imagem ilustrativa)", "Envy fstop", "CC BY-SA 4.0", "Disc_brakes.jpg"],
   ["Farol (imagem ilustrativa)", "Prabhupuducherry", "CC BY-SA 3.0", "Car_headlamp.JPG"],

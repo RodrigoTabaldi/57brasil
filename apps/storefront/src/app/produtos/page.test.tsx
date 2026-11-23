@@ -3,7 +3,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import ProductsPage from "./page";
 
-const catalogMocks = vi.hoisted(() => ({ getPartTypes: vi.fn(), getPartTypeGroups: vi.fn() }));
+const catalogMocks = vi.hoisted(() => ({ getPartTypes: vi.fn(), getPartTypeGroups: vi.fn(), getCatalogCategories: vi.fn() }));
 vi.mock("@/lib/catalog", () => catalogMocks);
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/components/catalog/PartTypeCard", () => ({ PartTypeCard: ({ item }: { item: { name: string } }) => <div>{item.name}</div> }));
@@ -11,6 +11,7 @@ vi.mock("@/components/catalog/PartTypeCard", () => ({ PartTypeCard: ({ item }: {
 beforeEach(() => {
   catalogMocks.getPartTypes.mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 24 });
   catalogMocks.getPartTypeGroups.mockResolvedValue([]);
+  catalogMocks.getCatalogCategories.mockResolvedValue([]);
 });
 afterEach(() => { cleanup(); vi.resetAllMocks(); });
 
@@ -21,9 +22,20 @@ it("shows cataloged parts and forwards the search and group filters", async () =
   const query = catalogMocks.getPartTypes.mock.calls[0][0] as URLSearchParams;
   expect(query.get("q")).toBe("filtro");
   expect(query.get("group")).toBe("motor");
-  expect(screen.getByRole("combobox", { name: "Grupo" })).toHaveProperty("value", "motor");
+  expect(screen.getByRole("combobox", { name: "Grupo ou tipo de peça" })).toHaveProperty("value", "motor");
   expect(screen.getByText("Filtro de óleo")).toBeTruthy();
   expect(screen.getByRole("status").textContent).toBe("1 item cadastrado");
+});
+
+it("exposes categories under their group and forwards the selected category", async () => {
+  catalogMocks.getPartTypeGroups.mockResolvedValue([{ slug: "filtros", name: "Filtros", count: 33 }]);
+  catalogMocks.getCatalogCategories.mockResolvedValue([{ slug: "filtros-filtro-de-oleo", name: "Filtro de óleo", groupSlug: "filtros", count: 9 }]);
+  catalogMocks.getPartTypes.mockResolvedValue({ items: [{ id: "1", name: "Tecfil PSL55" }], total: 30, page: 1, pageSize: 24 });
+  render(await ProductsPage({ searchParams: Promise.resolve({ grupo: "filtros-filtro-de-oleo" }) }));
+  expect((catalogMocks.getPartTypes.mock.calls[0][0] as URLSearchParams).get("group")).toBe("filtros-filtro-de-oleo");
+  expect(screen.getByRole("combobox", { name: "Grupo ou tipo de peça" })).toHaveProperty("value", "filtros-filtro-de-oleo");
+  expect(screen.getByRole("option", { name: "Filtro de óleo (9)" }).parentElement?.getAttribute("label")).toBe("Filtros");
+  expect(screen.getByRole("link", { name: "Próxima" }).getAttribute("href")).toContain("grupo=filtros-filtro-de-oleo");
 });
 
 it("shows an empty state when no parts match", async () => {

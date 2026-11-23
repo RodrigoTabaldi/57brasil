@@ -1,12 +1,13 @@
 import Link from "next/link";
 import type { PartType } from "@/lib/catalog";
 import { CatalogImage } from "@/components/catalog/CatalogImage";
+import { catalogItemImage } from "@/lib/catalog";
 
 export function PartTypeCard({ item }: { item: PartType }) {
   return <article className="product-card showcase-card part-type-card">
     <Link className="part-type-card-link" href={`/tipos/${item.slug}`}>
       <div className="product-art showcase-art">
-        <CatalogImage src={item.imageUrl} alt={`Imagem ilustrativa de ${item.name}, do grupo ${item.group}`} sizes="(max-width: 650px) 50vw, (max-width: 900px) 33vw, 25vw" />
+        <CatalogImage src={catalogItemImage(item)} alt={`Imagem ilustrativa de ${item.name}, do grupo ${item.group}`} sizes="(max-width: 650px) 50vw, (max-width: 900px) 33vw, 25vw" />
         <span className="part-type-image-label">Imagem ilustrativa</span>
       </div>
       <div className="product-card-body">

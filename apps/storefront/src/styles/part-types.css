@@ -11,7 +11,7 @@
 .part-type-group-links a:hover,.part-type-group-links a:focus-visible{border-color:var(--red);background:#fff6f6;color:var(--red-deep)}
 .part-type-group-links span{font-size:.71rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .part-type-card .product-card-body{display:flex;flex-direction:column;min-height:175px}
-.part-type-card .showcase-art{background:#e9ece9}
+.part-type-card .showcase-art{background:#fff}
 .part-type-card .showcase-art img{object-fit:cover;padding:0}
 .part-type-card .part-type-image-label{position:absolute;z-index:2;left:11px;bottom:11px;padding:5px 8px;border-radius:4px;background:#fffdfbea;color:#343c38;font-size:.62rem;font-weight:800;letter-spacing:.02em}
 .part-type-card .part-type-status{font-size:.76rem;color:var(--muted);margin:0 0 20px}
@@ -28,7 +28,7 @@
 .part-type-purchase-box>p{margin-bottom:18px;color:var(--muted);font-size:.86rem}
 .part-type-purchase-box .part-type-purchase>p{margin-bottom:0}
 .part-type-detail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;gap:48px;margin-top:30px}
-.part-type-detail-image{height:clamp(330px,42vw,540px);border:1px solid var(--line);border-radius:12px;background:#f1f4f1}
+.part-type-detail-image{height:clamp(330px,42vw,540px);border:1px solid var(--line);border-radius:12px;background:#fff}
 .part-type-detail-image img{object-fit:contain;padding:24px}
 .part-type-detail-info{padding-top:14px}
 .part-type-detail-info h1{margin:10px 0 14px;font-size:clamp(2rem,3.4vw,3rem);line-height:1.12}
@@ -39,7 +39,7 @@
 .part-type-detail-image{position:relative;overflow:hidden}
 .part-type-detail-image img{object-fit:contain;padding:24px}
 .part-type-detail .purchase-box p{margin:12px 0 0}
-.catalog-image-fallback{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:9px;background:linear-gradient(145deg,#f7f8f6,#ebefec);color:#606a6e;font-size:.76rem;font-weight:800;text-align:center}
+.catalog-image-fallback{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:9px;background:#fff;color:#606a6e;font-size:.76rem;font-weight:800;text-align:center}
 .catalog-empty-actions,.route-error-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:12px}
 .catalog-empty-actions .button,.route-error-actions .button{margin:0}
 .catalog-loading-detail .breadcrumb .loading-line{width:220px;height:14px}
