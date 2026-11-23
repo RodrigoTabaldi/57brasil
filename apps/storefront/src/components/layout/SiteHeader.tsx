@@ -20,9 +20,9 @@ export async function SiteHeader() {
       <div className="shell header-main">
         <Link className="brand" href="/" aria-label="57 Brasil, página inicial"><Image src="/logo-57brasil-4k.png" alt="57 Brasil" width={3840} height={1312} priority className="brand-logo" /></Link>
         <SearchBox />
-        <div className="header-actions"><AccountMenu/><Link href="/veiculo" className="header-action"><CarFront size={22} aria-hidden="true"/><span>Meu veículo</span></Link><Link href="/carrinho" className="header-action"><ShoppingBag size={22} aria-hidden="true"/><span>Carrinho</span></Link></div>
+        <div className="header-actions"><AccountMenu/><Link href="/veiculo" className="header-action" aria-label="Buscar por veículo"><CarFront size={22} aria-hidden="true"/><span>Meu veículo</span></Link><Link href="/carrinho" className="header-action" aria-label="Abrir carrinho"><ShoppingBag size={22} aria-hidden="true"/><span>Carrinho</span></Link></div>
       </div>
-      <div className="header-nav"><nav className="shell nav-links" aria-label="Catálogo"><Link href="/produtos#tipos">Catálogo e filtros</Link><Link href="/veiculo">Buscar por veículo</Link><Link href="/produtos#produtos-aprovados">Produtos específicos</Link>{departments.length > 0 && <DepartmentMenu departments={departments} demoGroups={[]} />}</nav></div>
+      <div className="header-nav"><nav className="shell nav-links" aria-label="Catálogo"><Link href="/produtos#tipos">Catálogo e filtros</Link><Link href="/veiculo">Buscar por veículo</Link><Link href="/produtos?modo=aprovados#produtos-aprovados">Produtos específicos</Link>{departments.length > 0 && <DepartmentMenu departments={departments} demoGroups={[]} />}</nav></div>
     </header>
   </>;
 }
