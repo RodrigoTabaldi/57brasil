@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, ChevronRight, ShieldCheck } from "lucide-react";
 import { PartTypeCard } from "@/components/catalog/PartTypeCard";
+import { CatalogRetryButton } from "@/components/catalog/CatalogRetryButton";
 import { getPartTypeGroups, getPartTypes } from "@/lib/catalog";
 
 export default async function Home() {
@@ -23,8 +24,8 @@ export default async function Home() {
     </section>
     <section id="catalogo" className="showcase-section storefront-catalog" aria-labelledby="showcase-title"><div className="shell">
       <div className="store-section-head"><div><span className="section-kicker">CATÁLOGO 57 BRASIL</span><h2 id="showcase-title">Tipos de peças</h2><p className="catalog-intro">{types ? `${types.total} tipos de peças no catálogo` : "Catálogo temporariamente indisponível"}</p></div><Link className="inline-link" href="/produtos#tipos">Ver catálogo completo <ArrowRight size={17} aria-hidden="true" /></Link></div>
-      {groups.length > 0 && <nav className="part-type-group-links" aria-label="Explorar grupos de peças">{groups.map(group => <Link key={group.slug} href={`/produtos?grupo=${encodeURIComponent(group.slug)}#tipos`}>{group.name}<span>{group.count}</span></Link>)}</nav>}
-      {types?.items.length ? <div className="product-grid">{types.items.slice(0, 12).map(item => <PartTypeCard item={item} key={item.id} />)}</div> : <div className="catalog-empty" role="status"><h3>{types ? "Nenhum tipo de peça cadastrado" : "Não foi possível carregar o catálogo"}</h3><p>{types ? "Explore os grupos ou busque pelo nome da peça." : "Tente novamente em instantes."}</p><Link href="/produtos" className="inline-link">Abrir catálogo</Link></div>}
+      {groups.length > 0 ? <nav className="part-type-group-links" aria-label="Explorar grupos de peças">{groups.map(group => <Link key={group.slug} href={`/produtos?grupo=${encodeURIComponent(group.slug)}#tipos`}>{group.name}<span>{group.count}</span></Link>)}</nav> : groupsResult.status === "rejected" && types !== null ? <div className="demo-notice"><p role="status">Não foi possível carregar os grupos de peças. Tente novamente.</p><CatalogRetryButton /></div> : null}
+      {types?.items.length ? <div className="product-grid">{types.items.slice(0, 12).map(item => <PartTypeCard item={item} key={item.id} />)}</div> : <div className="catalog-empty"><h3>{types ? "Nenhum tipo de peça cadastrado" : "Não foi possível carregar o catálogo"}</h3><p role={types ? undefined : "status"}>{types ? "Explore os grupos ou busque pelo nome da peça." : "Tente novamente em instantes."}</p>{types ? <Link href="/produtos" className="inline-link">Abrir catálogo</Link> : <div className="catalog-empty-actions"><CatalogRetryButton /><Link href="/produtos" className="inline-link">Abrir catálogo</Link></div>}</div>}
     </div></section>
     <section className="shell store-assurance"><ShieldCheck size={27} aria-hidden="true" /><div><strong>Escolha com informação</strong><p>A aplicação de uma peça no veículo depende do item específico. Confira os dados técnicos antes da compra.</p></div><Link href="/veiculo">Buscar pelo veículo <ArrowRight size={17} aria-hidden="true" /></Link></section>
   </main>;

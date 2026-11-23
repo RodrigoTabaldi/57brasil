@@ -6,6 +6,7 @@ import { getProduct, getApplications, formatPrice } from "@/lib/catalog";
 import { AddToCart } from "@/components/ui/AddToCart";
 import { ProductShare } from "@/components/ui/ProductShare";
 import { DemoImageViewer } from "@/components/catalog/DemoImageViewer";
+import { CatalogRetryButton } from "@/components/catalog/CatalogRetryButton";
 
 type Props = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -37,7 +38,7 @@ export default async function ProductPage({ params }: Props) {
     <div className="product-showcase-sections">
       <details open><summary>Descrição do produto <ChevronDown size={19} aria-hidden="true" /></summary><div className="product-showcase-panel"><p>{product.description || product.shortDescription || "Descrição ainda não cadastrada."}</p></div></details>
       <details><summary>Especificações técnicas <ChevronDown size={19} aria-hidden="true" /></summary><div className="product-showcase-panel"><dl><dt>SKU interno</dt><dd>{product.sku}</dd>{product.brand && <><dt>Marca</dt><dd>{product.brand}</dd></>}{product.manufacturerCode && <><dt>Código do fabricante</dt><dd>{product.manufacturerCode}</dd></>}{product.weightKg != null && <><dt>Peso</dt><dd>{product.weightKg} kg</dd></>}{product.heightCm != null && product.widthCm != null && product.lengthCm != null && <><dt>Dimensões</dt><dd>{product.heightCm} × {product.widthCm} × {product.lengthCm} cm</dd></>}</dl></div></details>
-      <details><summary>Compatibilidade com veículos <ChevronDown size={19} aria-hidden="true" /></summary><div className="product-showcase-panel">{applications === null ? <p>Não foi possível consultar a compatibilidade.</p> : applications.length === 0 ? <p>Compatibilidade ainda não cadastrada.</p> : <ul>{applications.map((item, index) => <li key={`${item.make}-${item.model}-${item.version}-${index}`}>{item.make} {item.model} {item.version}, {item.startYear}–{item.endYear}{item.restriction ? ` — ${item.restriction}` : ""}</li>)}</ul>}</div></details>
+      <details><summary>Compatibilidade com veículos <ChevronDown size={19} aria-hidden="true" /></summary><div className="product-showcase-panel">{applications === null ? <><p role="status">Não foi possível consultar a compatibilidade. Tente novamente.</p><CatalogRetryButton /></> : applications.length === 0 ? <p>Compatibilidade ainda não cadastrada.</p> : <ul>{applications.map((item, index) => <li key={`${item.make}-${item.model}-${item.version}-${index}`}>{item.make} {item.model} {item.version}, {item.startYear}–{item.endYear}{item.restriction ? ` — ${item.restriction}` : ""}</li>)}</ul>}</div></details>
     </div>
   </main>;
 }
