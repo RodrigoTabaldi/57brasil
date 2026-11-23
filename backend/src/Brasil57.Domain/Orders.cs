@@ -9,6 +9,7 @@ public sealed class Order
     public required string IdempotencyKey { get; set; }
     public required string RequestHash { get; set; }
     public required string BuyerEmail { get; set; }
+    public string? ShippingAddress { get; set; }
     public OrderStatus Status { get; set; } = OrderStatus.AwaitingPayment;
     public decimal ItemsTotal { get; set; }
     public decimal ShippingTotal { get; set; }

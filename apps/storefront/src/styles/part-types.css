@@ -1,0 +1,22 @@
+.catalog-section + .catalog-section{margin-top:56px;padding-top:36px;border-top:1px solid var(--line)}
+.catalog-section>h2{font-size:1.45rem;margin:0 0 6px;text-wrap:balance}
+.catalog-section>p{color:var(--muted);font-size:.86rem;margin:0 0 20px}
+.catalog-section .catalog-count{font-weight:800;color:var(--graphite);font-variant-numeric:tabular-nums}
+.catalog-mode-nav{display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 28px}
+.catalog-mode-nav a{padding:11px 18px;border:1px solid var(--line);border-radius:100px;font-size:.85rem;font-weight:800;color:var(--graphite)}
+.catalog-mode-nav a[aria-current=page]{background:var(--ink);border-color:var(--ink);color:#fff}
+.catalog-mode-nav a:hover:not([aria-current=page]){border-color:var(--red);color:var(--red-deep)}
+.part-type-group-links{display:flex;gap:9px;overflow-x:auto;padding:2px 2px 18px;margin-bottom:13px;scrollbar-width:thin}
+.part-type-group-links a{flex:none;display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:.78rem;font-weight:800;transition:border-color .2s,background-color .2s,color .2s}
+.part-type-group-links a:hover,.part-type-group-links a:focus-visible{border-color:var(--red);background:#fff6f6;color:var(--red-deep)}
+.part-type-group-links span{font-size:.71rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.part-type-card .product-card-body{display:flex;flex-direction:column;min-height:175px}
+.part-type-card .showcase-art{background:#e9ece9}
+.part-type-card .showcase-art img{object-fit:cover;padding:0}
+.part-type-card .part-type-image-label{position:absolute;z-index:2;left:11px;bottom:11px;padding:5px 8px;border-radius:4px;background:#fffdfbea;color:#343c38;font-size:.62rem;font-weight:800;letter-spacing:.02em}
+.part-type-card .part-type-status{font-size:.76rem;color:var(--muted);margin:0 0 20px}
+.part-type-card .showcase-card-link{margin-top:auto}
+.part-type-detail-image{position:relative;overflow:hidden}
+.part-type-detail-image img{object-fit:contain;padding:24px}
+.part-type-detail .purchase-box p{margin:12px 0 0}
+@media(prefers-reduced-motion:reduce){.part-type-card{animation:none;transition:none}.part-type-card:hover,.part-type-card:focus-visible{transform:none}}

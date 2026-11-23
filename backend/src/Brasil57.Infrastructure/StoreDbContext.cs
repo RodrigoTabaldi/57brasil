@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 namespace Brasil57.Infrastructure;
 public sealed class StoreDbContext(DbContextOptions<StoreDbContext> options) : IdentityDbContext<StoreUser, IdentityRole<Guid>, Guid>(options)
 {
+    public DbSet<PartType> PartTypes => Set<PartType>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Brand> Brands => Set<Brand>();
     public DbSet<Product> Products => Set<Product>();
@@ -19,6 +20,7 @@ public sealed class StoreDbContext(DbContextOptions<StoreDbContext> options) : I
     public DbSet<VehicleVersion> VehicleVersions => Set<VehicleVersion>();
     public DbSet<ProductApplication> ProductApplications => Set<ProductApplication>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<DailyVisit> DailyVisits => Set<DailyVisit>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<SupplierRequest> SupplierRequests => Set<SupplierRequest>();
@@ -30,7 +32,9 @@ public sealed class StoreDbContext(DbContextOptions<StoreDbContext> options) : I
     protected override void OnModelCreating(ModelBuilder model)
     {
         base.OnModelCreating(model);
+        model.Entity<PartType>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.Slug).IsUnique(); e.HasIndex(x => x.GroupSlug); e.Property(x => x.Name).HasMaxLength(160); e.Property(x => x.Slug).HasMaxLength(180); e.Property(x => x.Group).HasMaxLength(100); e.Property(x => x.GroupSlug).HasMaxLength(120); e.Property(x => x.Status).HasMaxLength(80); e.Property(x => x.ImageUrl).HasMaxLength(300); });
         model.Entity<AuditLog>(e => { e.HasKey(x => x.Id); e.Property(x => x.Action).HasMaxLength(80); e.Property(x => x.Entity).HasMaxLength(80); e.Property(x => x.EvidenceSnapshot).HasColumnType("jsonb"); e.HasIndex(x => x.CreatedAt); });
+        model.Entity<DailyVisit>(e => { e.HasKey(x => x.Day); e.ToTable(t => t.HasCheckConstraint("ck_daily_visit_count", "\"Count\" >= 0")); });
         model.Entity<Category>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.Slug).IsUnique(); e.Property(x => x.Name).HasMaxLength(120); e.Property(x => x.Slug).HasMaxLength(140); e.HasOne(x => x.Parent).WithMany().HasForeignKey(x => x.ParentId).OnDelete(DeleteBehavior.Restrict); });
         model.Entity<Brand>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.Slug).IsUnique(); e.Property(x => x.Name).HasMaxLength(120); e.Property(x => x.Slug).HasMaxLength(140); });
         model.Entity<Product>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.Sku).IsUnique(); e.HasIndex(x => x.Slug).IsUnique(); e.HasIndex(x => x.Name); e.Property(x => x.Price).HasPrecision(12,2); e.Property(x => x.PriceSourceReference).HasMaxLength(200); e.Property(x => x.StockSourceReference).HasMaxLength(200); e.Property(x => x.CompatibilitySourceReference).HasMaxLength(200); e.Property(x => x.WeightKg).HasPrecision(9,3); e.Property(x => x.HeightCm).HasPrecision(9,2); e.Property(x => x.WidthCm).HasPrecision(9,2); e.Property(x => x.LengthCm).HasPrecision(9,2); e.ToTable(t => t.HasCheckConstraint("ck_product_price", "\"Price\" >= 0")); e.Property(x => x.Sku).HasMaxLength(80); e.Property(x => x.Slug).HasMaxLength(180); e.Property(x => x.Name).HasMaxLength(240); e.Property(x => x.ManufacturerCode).HasMaxLength(100); e.HasOne(x => x.Category).WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict); e.HasOne(x => x.Brand).WithMany().HasForeignKey(x => x.BrandId).OnDelete(DeleteBehavior.Restrict); });

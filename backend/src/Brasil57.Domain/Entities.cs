@@ -1,4 +1,14 @@
 ﻿namespace Brasil57.Domain;
+public sealed class PartType
+{
+    public Guid Id { get; set; }
+    public required string Name { get; set; }
+    public required string Slug { get; set; }
+    public required string Group { get; set; }
+    public required string GroupSlug { get; set; }
+    public required string Status { get; set; }
+    public required string ImageUrl { get; set; }
+}
 public sealed class Category
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -31,6 +41,8 @@ public sealed class Product
     public string? PriceSourceReference { get; set; }
     public string? StockSourceReference { get; set; }
     public string? CompatibilitySourceReference { get; set; }
+    public DateTimeOffset? SupplierConfirmedAt { get; set; }
+    public string? ApplicationNotes { get; set; }
     public decimal? WeightKg { get; set; }
     public decimal? HeightCm { get; set; }
     public decimal? WidthCm { get; set; }
@@ -84,6 +96,11 @@ public sealed class CartOperation
     public Guid ProductId { get; set; }
     public int Quantity { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+}
+public sealed class DailyVisit
+{
+    public DateOnly Day { get; set; }
+    public long Count { get; set; }
 }
 
 

@@ -40,7 +40,15 @@ builder.Services.AddSingleton(new PaymentNotificationQueue(builder.Configuration
 builder.Services.AddIdentityCore<StoreUser>(options => { options.Password.RequiredLength = 12; options.Lockout.MaxFailedAccessAttempts = 5; options.User.RequireUniqueEmail = true; }).AddRoles<IdentityRole<Guid>>().AddEntityFrameworkStores<StoreDbContext>().AddSignInManager().AddDefaultTokenProviders();
 builder.Services.Configure<DataProtectionTokenProviderOptions>(options => options.TokenLifespan = TimeSpan.FromHours(1));
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdentityCookies();
-builder.Services.ConfigureApplicationCookie(options => { options.Cookie.HttpOnly = true; options.Cookie.SameSite = SameSiteMode.Strict; options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always; options.ExpireTimeSpan = TimeSpan.FromHours(8); options.SlidingExpiration = true; options.Events.OnRedirectToLogin = context => { context.Response.StatusCode = 401; return Task.CompletedTask; }; options.Events.OnRedirectToAccessDenied = context => { context.Response.StatusCode = 403; return Task.CompletedTask; }; });
+builder.Services.ConfigureApplicationCookie(options => { options.Cookie.HttpOnly = true; options.Cookie.SameSite = SameSiteMode.Strict; options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always; options.ExpireTimeSpan = TimeSpan.FromHours(8); options.SlidingExpiration = true; options.Events.OnValidatePrincipal = async context => {
+    var mfa = context.Principal?.HasClaim("admin_mfa", "true") == true;
+    var setup = context.Principal?.HasClaim("admin_setup", "true") == true;
+    await SecurityStampValidator.ValidatePrincipalAsync(context);
+    if (context.Principal?.Identity is System.Security.Claims.ClaimsIdentity identity) {
+        if (mfa && !context.Principal.HasClaim("admin_mfa", "true")) { identity.AddClaim(new System.Security.Claims.Claim("admin_mfa", "true")); context.ShouldRenew = true; }
+        if (setup && !context.Principal.HasClaim("admin_setup", "true")) { identity.AddClaim(new System.Security.Claims.Claim("admin_setup", "true")); context.ShouldRenew = true; }
+    }
+}; options.Events.OnRedirectToLogin = context => { context.Response.StatusCode = 401; return Task.CompletedTask; }; options.Events.OnRedirectToAccessDenied = context => { context.Response.StatusCode = 403; return Task.CompletedTask; }; });
 builder.Services.AddAuthorization();
 builder.Services.Configure<SecurityStampValidatorOptions>(o => o.ValidationInterval = TimeSpan.Zero);
 var shippingToken = builder.Configuration["Shipping:Token"];
@@ -74,6 +82,7 @@ if (args.Contains("--migrate", StringComparer.Ordinal))
     await db.Database.MigrateAsync();
     await CatalogSeed.EnsureDepartmentsAsync(db);
     await CatalogSeed.EnsureCatalogDraftsAsync(db);
+    await PartTypeSeed.EnsureAsync(db);
     await BootstrapAdmin(scope.ServiceProvider, app.Configuration);
     return;
 }
@@ -97,6 +106,36 @@ app.MapAdmin();
 app.MapCustomers(app.Configuration);
 app.MapSupplierRequests();
 var api = app.MapGroup("/api/v1");
+api.MapPost("/visits", async (HttpContext context, StoreDbContext db, CancellationToken ct) => {
+    if (!SameOrigin(context)) return Results.StatusCode(403);
+    var day = DateOnly.FromDateTime(DateTime.UtcNow);
+    await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"DailyVisits\" (\"Day\", \"Count\") VALUES ({day}, 1) ON CONFLICT (\"Day\") DO UPDATE SET \"Count\" = \"DailyVisits\".\"Count\" + 1", ct);
+    return Results.NoContent();
+});
+api.MapGet("/part-types", async Task<IResult> (StoreDbContext db, string? q, string? group, int? page, CancellationToken ct) => {
+    if (q?.Length is > 120 || group?.Length is > 120) return Results.BadRequest();
+    var currentPage = Math.Clamp(page ?? 1, 1, 10000);
+    var query = db.PartTypes.AsNoTracking().AsQueryable();
+    if (!string.IsNullOrWhiteSpace(q))
+    {
+        var term = q.Trim();
+        var normalized = PartTypeSeed.Slug(term);
+        query = query.Where(x => EF.Functions.ILike(x.Name, $"%{term}%") || EF.Functions.ILike(x.Group, $"%{term}%") ||
+            (normalized != "" && (x.Slug.Contains(normalized) || x.GroupSlug.Contains(normalized))));
+    }
+    if (!string.IsNullOrWhiteSpace(group)) query = query.Where(x => x.GroupSlug == group);
+    var total = await query.CountAsync(ct);
+    var items = await query.OrderBy(x => x.Group).ThenBy(x => x.Name).Skip((currentPage - 1) * 24).Take(24)
+        .Select(x => new { x.Id, x.Name, x.Slug, x.Group, x.GroupSlug, x.ImageUrl }).ToListAsync(ct);
+    return Results.Ok(new { items, total, page = currentPage, pageSize = 24 });
+});
+api.MapGet("/part-types/groups", async (StoreDbContext db, CancellationToken ct) =>
+    await db.PartTypes.AsNoTracking().GroupBy(x => new { x.Group, x.GroupSlug })
+        .Select(x => new { Name = x.Key.Group, Slug = x.Key.GroupSlug, Count = x.Count() }).OrderBy(x => x.Name).ToListAsync(ct));
+api.MapGet("/part-types/{slug}", async (string slug, StoreDbContext db, CancellationToken ct) =>
+    await db.PartTypes.AsNoTracking().Where(x => x.Slug == slug)
+        .Select(x => new { x.Id, x.Name, x.Slug, x.Group, x.GroupSlug, x.ImageUrl }).FirstOrDefaultAsync(ct) is { } type
+            ? Results.Ok(type) : Results.NotFound());
 if (webhookEnabled)
 {
     api.MapPost("/payments/mercado-pago/webhooks", async (HttpContext context, StoreDbContext db, IPaymentProvider provider, PaymentNotificationQueue queue, ILogger<Program> logger, CancellationToken ct) => {
@@ -131,22 +170,22 @@ api.MapGet("/categories", async (StoreDbContext db, CatalogTaxonomyCache cache, 
 api.MapGet("/brands", async (StoreDbContext db, CatalogTaxonomyCache cache, CancellationToken ct) =>
     await cache.GetOrLoadAsync(CatalogTaxonomyCache.BrandsKey,
         () => db.Brands.AsNoTracking().Where(x => x.Slug != "marca-a-confirmar").OrderBy(x => x.Name).Select(x => new BrandOption(x.Id, x.Name, x.Slug)).ToListAsync(ct), ct));
-api.MapGet("/products", async Task<IResult> (CatalogReadRouter reader, string? q, string? category, string? brand, string? vehicleType, Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, bool? availableOnly, int? page, CancellationToken ct) => {
+api.MapGet("/products", async Task<IResult> (CatalogReadRouter reader, string? q, string? category, string? brand, string? vehicleType, Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, bool? availableOnly, bool? approvedOnly, int? page, CancellationToken ct) => {
     if (!CatalogQueries.Valid(q, minPrice, maxPrice))
         return Results.ValidationProblem(new Dictionary<string, string[]> { ["filters"] = ["Busca ou faixa de preço inválida."] });
     var currentPage = Math.Clamp(page ?? 1, 1, 10000);
     return await reader.ReadAsync<IResult>(async db => {
-        var query = CatalogQueries.Filter(db, q, category, brand, vehicleType, vehicleVersion, year, minPrice, maxPrice, availableOnly);
+        var query = CatalogQueries.Filter(db, q, category, brand, vehicleType, vehicleVersion, year, minPrice, maxPrice, availableOnly, approvedOnly);
         var total = await query.CountAsync(ct);
         var items = await query.OrderBy(x => x.Name).ThenBy(x => x.Id).Skip((currentPage - 1) * 24).Take(24).Select(x => new { x.Id, x.Name, x.Slug, x.Sku, Price = x.Published ? (decimal?)x.Price : null, Brand = x.Published ? x.Brand.Name : null, Category = x.Category.Name, Available = x.Published ? (int?)(x.Inventory.OnHand - x.Inventory.Reserved) : null, ImageUrl = x.Images.OrderBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault() }).ToListAsync(ct);
         return Results.Ok(new { items, total, page = currentPage, pageSize = 24 });
     }, ct);
 });
-api.MapGet("/products/facets", async Task<IResult> (CatalogReadRouter reader, string? q, string? category, string? brand, string? vehicleType, Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, bool? availableOnly, CancellationToken ct) => {
+api.MapGet("/products/facets", async Task<IResult> (CatalogReadRouter reader, string? q, string? category, string? brand, string? vehicleType, Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, bool? availableOnly, bool? approvedOnly, CancellationToken ct) => {
     if (!CatalogQueries.Valid(q, minPrice, maxPrice))
         return Results.ValidationProblem(new Dictionary<string, string[]> { ["filters"] = ["Busca ou faixa de preço inválida."] });
     return await reader.ReadAsync<IResult>(async db => {
-        var query = CatalogQueries.Filter(db, q, category, brand, vehicleType, vehicleVersion, year, minPrice, maxPrice, availableOnly);
+        var query = CatalogQueries.Filter(db, q, category, brand, vehicleType, vehicleVersion, year, minPrice, maxPrice, availableOnly, approvedOnly);
         var categories = await query.GroupBy(x => new { x.Category.Slug, x.Category.Name })
             .Select(x => new { x.Key.Slug, x.Key.Name, Count = x.Count() }).OrderByDescending(x => x.Count).Take(50).ToListAsync(ct);
         var brands = await query.GroupBy(x => new { x.Brand.Slug, x.Brand.Name })
@@ -260,14 +299,18 @@ api.MapPatch("/cart/items/{itemId:guid}", async (Guid itemId, HttpContext contex
 }).RequireAuthorization();static async Task BootstrapAdmin(IServiceProvider services, IConfiguration configuration)
 {
     var email = configuration["BootstrapAdmin:Email"]; var password = configuration["BootstrapAdmin:Password"];
-    if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password)) return;
+    if (string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(password)) return;
+    if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password)) throw new InvalidOperationException("Informe e-mail e senha apenas no bootstrap inicial; remova ambas as variÃ¡veis depois.");
     var users = services.GetRequiredService<UserManager<StoreUser>>(); var roles = services.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
     if (!await roles.RoleExistsAsync("Administrator")) { var roleResult = await roles.CreateAsync(new IdentityRole<Guid>("Administrator")); if (!roleResult.Succeeded) throw new InvalidOperationException("Falha ao criar papel administrativo."); }
+    var existingAdmins = await users.GetUsersInRoleAsync("Administrator");
+    if (existingAdmins.Count > 1 || (existingAdmins.Count == 1 && !string.Equals(existingAdmins[0].Email, email, StringComparison.OrdinalIgnoreCase)))
+        throw new InvalidOperationException("JÃ¡ existe outra conta administrativa. Remova as credenciais de bootstrap e investigue a divergÃªncia.");
     // Never elevate an account that could have been registered through the public endpoint.
     var existing = await users.FindByEmailAsync(email);
     if (existing is not null)
     {
-        if (await users.IsInRoleAsync(existing, "Administrator")) return;
+        if (await users.IsInRoleAsync(existing, "Administrator")) throw new InvalidOperationException("Administrador jÃ¡ criado. Remova BOOTSTRAP_ADMIN_PASSWORD do ambiente antes de executar nova migraÃ§Ã£o.");
         throw new InvalidOperationException("O e-mail de bootstrap já pertence a uma conta existente. Escolha outro e-mail e investigue a conta antes de prosseguir.");
     }
     var user = new StoreUser { UserName = email, Email = email, EmailConfirmed = true };
