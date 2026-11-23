@@ -73,12 +73,20 @@ public static partial class AdminEndpoints
                     .Select(x => new { x.Id, x.Status, x.BuyerEmail, x.ShippingAddress, x.ItemsTotal, x.ShippingTotal, x.CreatedAt, x.PaidAt,
                         Items = x.Items.Select(i => new { i.Sku, i.Name, i.Quantity, i.UnitPrice }).ToList() }).ToListAsync(ct) });
         });
+        protectedAdmin.MapGet("/part-type-purchase-requests", async (StoreDbContext db, int? page, CancellationToken ct) => {
+            var currentPage = Math.Clamp(page ?? 1, 1, 100000);
+            var query = from request in db.PartTypePurchaseRequests.AsNoTracking()
+                        join user in db.Users.AsNoTracking() on request.UserId equals user.Id
+                        select new { request.Id, request.PartType.Name, request.PartType.Group, request.Quantity, request.Status, request.CreatedAt, user.FullName, user.Email };
+            return Results.Ok(new { total = await query.CountAsync(ct), page = currentPage, pageSize = 25,
+                items = await query.OrderByDescending(x => x.CreatedAt).ThenBy(x => x.Id).Skip((currentPage - 1) * 25).Take(25).ToListAsync(ct) });
+        });
         protectedAdmin.MapGet("/products", async (StoreDbContext db, string? q, int? page, CancellationToken ct) => {
             var currentPage = Math.Clamp(page ?? 1, 1, 100000);
             var query = db.Products.AsNoTracking();
             if (!string.IsNullOrWhiteSpace(q)) { var term = q.Trim(); if (term.Length > 120) return Results.BadRequest(); query = query.Where(x => EF.Functions.ILike(x.Name, $"%{term}%") || EF.Functions.ILike(x.Sku, $"%{term}%")); }
             var total = await query.CountAsync(ct);
-            var items = await query.OrderBy(x => x.Name).ThenBy(x => x.Id).Skip((currentPage - 1) * 50).Take(50).Select(x => new { x.Id, x.Name, x.Sku, x.Slug, x.Price, x.Published, x.BrandId, x.ManufacturerCode, x.ShortDescription, x.Description, x.PriceSourceReference, x.StockSourceReference, x.CompatibilitySourceReference, x.SupplierConfirmedAt, x.ApplicationNotes, x.WeightKg, x.HeightCm, x.WidthCm, x.LengthCm, Available = x.Inventory.OnHand - x.Inventory.Reserved }).ToListAsync(ct);
+            var items = await query.OrderBy(x => x.Name).ThenBy(x => x.Id).Skip((currentPage - 1) * 50).Take(50).Select(x => new { x.Id, x.Name, x.Sku, x.Slug, x.Price, x.Published, x.BrandId, x.ManufacturerCode, x.ShortDescription, x.Description, x.PriceSourceReference, x.StockSourceReference, x.CompatibilitySourceReference, x.SupplierConfirmedAt, x.ApplicationNotes, x.WeightKg, x.HeightCm, x.WidthCm, x.LengthCm, ImageUrl = x.Images.OrderBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault(), Available = x.Inventory.OnHand - x.Inventory.Reserved }).ToListAsync(ct);
             return Results.Ok(new { items, total, page = currentPage, pageSize = 50 });
         });
         protectedAdmin.MapGet("/categories", async (StoreDbContext db, string? q, CancellationToken ct) => await db.Categories.AsNoTracking().Where(x => q == null || EF.Functions.ILike(x.Name, $"%{q}%")).OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, x.Slug, x.Active }).ToListAsync(ct));
@@ -114,7 +122,7 @@ public static partial class AdminEndpoints
             if (!SameOrigin(context)) return Results.StatusCode(403);
             if (!ValidName(input.Name) || !ValidSlug(input.Slug, 180) || string.IsNullOrWhiteSpace(input.Sku) || input.Sku.Trim().Length > 80 || input.Price is < 0 or > 9999999999.99m || input.Stock < 0 || input.WeightKg is < 0 or > 999999 || input.HeightCm is < 0 or > 999999 || input.WidthCm is < 0 or > 999999 || input.LengthCm is < 0 or > 999999) return Results.BadRequest();
             if (input.VehicleFamilies?.Any(x => x is not ("carro" or "moto" or "caminhao")) == true) return Results.BadRequest();
-            var product = new Product { Name = input.Name.Trim(), Slug = input.Slug.Trim(), Sku = input.Sku.Trim(), CategoryId = input.CategoryId, BrandId = input.BrandId, Price = input.Price, PriceSourceReference = ReferenceOrNull(input.PriceSourceReference), StockSourceReference = ReferenceOrNull(input.StockSourceReference), CompatibilitySourceReference = ReferenceOrNull(input.CompatibilitySourceReference), WeightKg = input.WeightKg, HeightCm = input.HeightCm, WidthCm = input.WidthCm, LengthCm = input.LengthCm, Published = input.Published, VehicleFamilies = input.VehicleFamilies?.Distinct().ToArray() ?? [], Inventory = new InventoryItem { OnHand = input.Stock } };
+            var product = new Product { Name = input.Name.Trim(), Slug = input.Slug.Trim(), Sku = input.Sku.Trim(), CategoryId = input.CategoryId, BrandId = input.BrandId, Price = input.Price, PriceSourceReference = ReferenceOrNull(input.PriceSourceReference), StockSourceReference = ReferenceOrNull(input.StockSourceReference), CompatibilitySourceReference = ReferenceOrNull(input.CompatibilitySourceReference), WeightKg = input.WeightKg, HeightCm = input.HeightCm, WidthCm = input.WidthCm, LengthCm = input.LengthCm, Published = input.Published, CatalogVisible = true, VehicleFamilies = input.VehicleFamilies?.Distinct().ToArray() ?? [], Inventory = new InventoryItem { OnHand = input.Stock } };
             product.SupplierConfirmedAt = input.SupplierConfirmedAt;
             product.ApplicationNotes = input.ApplicationNotes?.Trim();
             if (product.ApplicationNotes?.Length > 500 || product.SupplierConfirmedAt > DateTimeOffset.UtcNow) return Results.BadRequest();
@@ -213,6 +221,7 @@ public sealed record AdminCategory(string Name, string Slug, Guid? ParentId);
 public sealed record AdminBrand(string Name, string Slug);
 public sealed record AdminProduct(string Name, string Slug, string Sku, Guid CategoryId, Guid BrandId, decimal Price, int Stock, bool Published, decimal? WeightKg, decimal? HeightCm, decimal? WidthCm, decimal? LengthCm, string[]? VehicleFamilies = null, string? PriceSourceReference = null, string? StockSourceReference = null, string? CompatibilitySourceReference = null, DateTimeOffset? SupplierConfirmedAt = null, string? ApplicationNotes = null);
 public sealed record AdminProductImage(string Url, string AltText, int SortOrder);
+public sealed record PartTypePurchaseRequestInput(int Quantity = 1);
 
 
 

@@ -7,7 +7,7 @@ export type AdminProductRecord = {
   brandId: string; manufacturerCode: string | null; shortDescription: string | null; description: string | null;
   priceSourceReference: string | null; stockSourceReference: string | null; compatibilitySourceReference: string | null;
   supplierConfirmedAt: string | null; applicationNotes: string | null;
-  weightKg: number | null; heightCm: number | null; widthCm: number | null; lengthCm: number | null; available: number;
+  weightKg: number | null; heightCm: number | null; widthCm: number | null; lengthCm: number | null; available: number; imageUrl: string | null;
 };
 type Brand = { id: string; name: string };
 
@@ -18,6 +18,7 @@ export function ProductEditor({ product, brands, onSaved }: { product: AdminProd
     event.preventDefault();
     setBusy(true); setError("");
     const data = new FormData(event.currentTarget);
+    let productSaved = false;
     const number = (name: string) => Number(data.get(name));
     const body = {
       name: String(data.get("name") ?? "").trim(), sku: String(data.get("sku") ?? "").trim(),
@@ -33,8 +34,14 @@ export function ProductEditor({ product, brands, onSaved }: { product: AdminProd
     try {
       const response = await fetch(`/api/v1/admin/products/${product.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       if (!response.ok) throw new Error();
+      productSaved = true;
+      const imageUrl = String(data.get("imageUrl") ?? "").trim();
+      if (imageUrl) {
+        const imageResponse = await fetch(`/api/v1/admin/products/${product.id}/images`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: imageUrl, altText: String(data.get("imageAltText") ?? "").trim() || `Imagem de ${product.name}`, sortOrder: product.imageUrl ? 1 : 0 }) });
+        if (!imageResponse.ok) { await onSaved(); setError("Dados salvos, mas não foi possível anexar a imagem. Confira se a URL HTTPS está acessível."); return; }
+      }
       await onSaved();
-    } catch { setError("Não foi possível salvar. Confira SKU, marca, preço, medidas e referências dos documentos."); }
+    } catch { setError(productSaved ? "Dados salvos, mas não foi possível anexar a imagem. Confira se a URL HTTPS está acessível." : "Não foi possível salvar. Confira SKU, marca, preço, medidas e referências dos documentos."); }
     finally { setBusy(false); }
   }
   return <details className="admin-product-editor"><summary>Editar dados do produto</summary>
@@ -55,6 +62,8 @@ export function ProductEditor({ product, brands, onSaved }: { product: AdminProd
       <label>Comprimento (cm)<input name="lengthCm" type="number" min="0.01" step="0.01" defaultValue={product.lengthCm ?? ""} required /></label>
       <label>Resumo<input name="shortDescription" defaultValue={product.shortDescription ?? ""} /></label>
       <label>Descrição completa<textarea name="description" defaultValue={product.description ?? ""} /></label>
+      <label>Adicionar imagem (URL HTTPS)<input name="imageUrl" type="url" pattern="https://.+" maxLength={500} placeholder="https://exemplo.com/imagem.jpg" /></label>
+      <label>Texto alternativo da imagem<input name="imageAltText" maxLength={200} placeholder={`Imagem de ${product.name}`} /></label>
     </div><button className="button" type="submit" disabled={busy}>{busy ? "Salvando…" : "Salvar dados"}</button>{error && <p role="alert">{error}</p>}</form>
   </details>;
 }

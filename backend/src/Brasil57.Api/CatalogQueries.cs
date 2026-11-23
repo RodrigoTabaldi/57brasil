@@ -10,11 +10,13 @@ internal static class CatalogQueries
         q?.Length is not > 120 && minPrice is not < 0 && maxPrice is not < 0 &&
         (minPrice is null || maxPrice is null || maxPrice >= minPrice);
 
+    internal static IQueryable<Product> Purchasable(StoreDbContext db) =>
+        db.Products.AsNoTracking().Where(x => x.Published && x.Price > 0 && x.Inventory.OnHand > x.Inventory.Reserved);
+
     internal static IQueryable<Product> Filter(StoreDbContext db, string? q, string? category, string? brand, string? vehicleType,
-        Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, bool? availableOnly, bool? approvedOnly = null)
+        Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice)
     {
-        var query = db.Products.AsNoTracking().Where(x => x.Published || x.CatalogVisible);
-        if (approvedOnly == true) query = query.Where(x => x.Published);
+        var query = Purchasable(db);
         if (!string.IsNullOrWhiteSpace(q))
         {
             var search = q.Trim();
@@ -29,9 +31,8 @@ internal static class CatalogQueries
         }
         if (!string.IsNullOrWhiteSpace(brand)) query = query.Where(x => x.Brand.Slug == brand);
         if (vehicleVersion is not null) query = query.Where(x => x.CompatibilitySourceReference != null && db.ProductApplications.Any(a => a.ProductId == x.Id && a.VehicleVersionId == vehicleVersion && (year == null || (a.StartYear <= year && a.EndYear >= year))));
-        if (minPrice is not null) query = query.Where(x => x.Published && x.Price >= minPrice);
-        if (maxPrice is not null) query = query.Where(x => x.Published && x.Price <= maxPrice);
-        if (availableOnly == true) query = query.Where(x => x.Published && x.Inventory.OnHand > x.Inventory.Reserved);
+        if (minPrice is not null) query = query.Where(x => x.Price >= minPrice);
+        if (maxPrice is not null) query = query.Where(x => x.Price <= maxPrice);
         return query;
     }
 }

@@ -15,6 +15,26 @@
 .part-type-card .showcase-art img{object-fit:cover;padding:0}
 .part-type-card .part-type-image-label{position:absolute;z-index:2;left:11px;bottom:11px;padding:5px 8px;border-radius:4px;background:#fffdfbea;color:#343c38;font-size:.62rem;font-weight:800;letter-spacing:.02em}
 .part-type-card .part-type-status{font-size:.76rem;color:var(--muted);margin:0 0 20px}
+.part-type-card .showcase-art img{object-fit:contain;padding:18px}
+.part-type-card{display:flex;flex-direction:column}
+.part-type-card-link{display:block;flex:1;color:inherit}
+.part-type-card .product-card-body{min-height:160px}
+.part-type-card-action{padding:0 19px 19px}
+.part-type-purchase .button{width:100%;min-height:44px}
+.part-type-purchase>p{margin:9px 0 0;color:var(--green);font-size:.78rem;line-height:1.5}
+.part-type-purchase>p:empty{display:none}
+.part-type-purchase-box{margin-top:24px;padding:23px;border:1px solid var(--line);border-radius:10px;background:#f5f8f5}
+.part-type-purchase-box h2{margin-bottom:8px;font-size:1.1rem}
+.part-type-purchase-box>p{margin-bottom:18px;color:var(--muted);font-size:.86rem}
+.part-type-purchase-box .part-type-purchase>p{margin-bottom:0}
+.part-type-detail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;gap:48px;margin-top:30px}
+.part-type-detail-image{height:clamp(330px,42vw,540px);border:1px solid var(--line);border-radius:12px;background:#f1f4f1}
+.part-type-detail-image img{object-fit:contain;padding:24px}
+.part-type-detail-info{padding-top:14px}
+.part-type-detail-info h1{margin:10px 0 14px;font-size:clamp(2rem,3.4vw,3rem);line-height:1.12}
+.part-type-detail-info>.part-type-status{color:var(--muted);font-size:.9rem}
+.part-type-image-note{margin:18px 0;color:var(--muted);font-size:.8rem}
+.part-type-detail-page>.back-link{display:inline-flex;margin-top:-12px}
 .part-type-card .showcase-card-link{margin-top:auto}
 .part-type-detail-image{position:relative;overflow:hidden}
 .part-type-detail-image img{object-fit:contain;padding:24px}
@@ -38,4 +58,5 @@
 .route-error-actions{margin-top:24px}
 @media(max-width:1080px){.catalog-loading-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.catalog-loading-layout{grid-template-columns:1fr;gap:20px}.catalog-loading-layout .filter-panel{height:190px}.catalog-loading-grid{gap:8px}.catalog-loading-grid .loading-card{height:245px;padding:145px 14px 18px}}
+@media(max-width:700px){.part-type-detail{grid-template-columns:1fr;gap:24px}.part-type-detail-image{height:clamp(290px,80vw,420px)}.part-type-detail-info{padding:0}.part-type-card-action{padding:0 12px 12px}.part-type-card .product-card-body{min-height:160px}}
 @media(prefers-reduced-motion:reduce){.part-type-card{animation:none;transition:none}.part-type-card:hover,.part-type-card:focus-visible{transform:none}}

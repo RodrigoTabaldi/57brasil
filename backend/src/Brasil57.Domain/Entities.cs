@@ -9,6 +9,16 @@ public sealed class PartType
     public required string Status { get; set; }
     public required string ImageUrl { get; set; }
 }
+public sealed class PartTypePurchaseRequest
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
+    public Guid PartTypeId { get; set; }
+    public PartType PartType { get; set; } = null!;
+    public int Quantity { get; set; } = 1;
+    public string Status { get; set; } = "pending";
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+}
 public sealed class Category
 {
     public Guid Id { get; set; } = Guid.NewGuid();

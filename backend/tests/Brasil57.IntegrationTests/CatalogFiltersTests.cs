@@ -12,7 +12,7 @@ namespace Brasil57.IntegrationTests;
 public sealed class CatalogFiltersTests
 {
     [Fact]
-    public async Task Vehicle_family_filter_returns_existing_drafts_with_reference_images_and_empty_results()
+    public async Task Vehicle_family_filter_excludes_unpublished_drafts_and_handles_empty_results()
     {
         var connection = Environment.GetEnvironmentVariable("BRASIL57_TEST_DATABASE")
             ?? throw new InvalidOperationException("Defina BRASIL57_TEST_DATABASE para um PostgreSQL descartável.");
@@ -41,13 +41,12 @@ public sealed class CatalogFiltersTests
         });
         using var client = factory.CreateClient();
 
-        foreach (var (family, product) in families.Zip(products))
+        foreach (var family in families)
         {
             var result = await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?vehicleType={family}&category={category.Slug}");
             Assert.NotNull(result);
-            var item = Assert.Single(result.Items);
-            Assert.Equal(product.Id, item.Id);
-            Assert.Equal($"/demo-products/{family}.png", item.ImageUrl);
+            Assert.Empty(result.Items);
+            Assert.Equal(0, result.Total);
         }
 
         var noMatch = await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?vehicleType=onibus&category={category.Slug}");
@@ -126,16 +125,17 @@ public sealed class CatalogFiltersTests
         Assert.NotNull(facets);
         Assert.Equal(category.Slug, Assert.Single(facets.Categories).Slug);
         Assert.Equal(1, Assert.Single(facets.Brands).Count);
-        Assert.Equal(3, (await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?category={category.Slug}"))!.Total);
-        Assert.Equal(2, (await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?category={category.Slug}&approvedOnly=true"))!.Total);
+        Assert.Equal(1, (await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?category={category.Slug}"))!.Total);
+        Assert.Equal(1, (await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?category={category.Slug}&approvedOnly=true"))!.Total);
+        Assert.Equal(1, (await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?category={category.Slug}&approvedOnly=false"))!.Total);
         var approvedFacets = await client.GetFromJsonAsync<Facets>($"/api/v1/products/facets?category={category.Slug}&approvedOnly=true");
-        Assert.Equal(2, Assert.Single(approvedFacets!.Categories).Count);
-        Assert.Equal(2, Assert.Single(approvedFacets.Brands).Count);
+        Assert.Equal(1, Assert.Single(approvedFacets!.Categories).Count);
+        Assert.Equal(1, Assert.Single(approvedFacets.Brands).Count);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/v1/products?minPrice=20&maxPrice=10")).StatusCode);
     }
 
     [Fact]
-    public async Task Illustrative_vehicle_family_filter_returns_only_existing_family_drafts_and_handles_empty_results()
+    public async Task Illustrative_vehicle_family_filter_excludes_unpublished_drafts_and_handles_empty_results()
     {
         var connection = Environment.GetEnvironmentVariable("BRASIL57_TEST_DATABASE")
             ?? throw new InvalidOperationException("Defina BRASIL57_TEST_DATABASE para um PostgreSQL descartável.");
@@ -177,11 +177,12 @@ public sealed class CatalogFiltersTests
         });
         using var client = factory.CreateClient();
 
-        foreach (var (family, expected) in new[] { ("carro", products[0]), ("moto", products[1]), ("caminhao", products[2]) })
+        foreach (var family in new[] { "carro", "moto", "caminhao" })
         {
             var result = await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?vehicleType={family}&brand={brand.Slug}");
             Assert.NotNull(result);
-            Assert.Equal(expected.Id, Assert.Single(result.Items).Id);
+            Assert.Empty(result.Items);
+            Assert.Equal(0, result.Total);
         }
 
         var empty = await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?vehicleType=moto&q=sem-correspondencia-{suffix}");

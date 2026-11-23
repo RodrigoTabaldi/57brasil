@@ -5,6 +5,14 @@
 .showcase-art-mark{position:absolute;z-index:2;top:15px;right:17px;display:flex;flex-direction:column;color:var(--red);font-size:1.05rem;font-weight:900;font-style:italic;line-height:.85;letter-spacing:-.07em;text-align:right}
 .showcase-art-mark span{font-size:.52rem;letter-spacing:.02em;font-style:normal;margin-top:3px}
 .showcase-art img{object-fit:contain;padding:18px 25px 12px;transition:transform .35s ease}
+.showcase-card.catalog-product-card .product-art{background:#f3f8f3}
+.catalog-product-card .showcase-art img{object-fit:contain;padding:24px}
+.catalog-product-card .product-card-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px}
+.catalog-product-card .showcase-card-link{margin:0}
+.catalog-product-card .quick-buy{display:block;margin:0}
+.catalog-product-card .quick-buy .button{min-height:38px;padding:0 15px;font-size:.7rem;white-space:nowrap}
+.catalog-product-card .quick-buy>p{margin:7px 0 0;color:var(--muted);font-size:.65rem;line-height:1.4}
+@media(max-width:650px){.catalog-product-card .product-card-actions{align-items:stretch;flex-direction:column}.catalog-product-card .product-card-actions .quick-buy .button{width:100%}}
 .showcase-card:hover .showcase-art img,.showcase-card:focus-visible .showcase-art img{transform:scale(1.07)}
 .showcase-card .product-art{gap:10px;color:#9da7a4;background:radial-gradient(circle at center,#fff 35%,#f7f8f7 100%)}
 .showcase-image-note{font-size:.6rem!important;letter-spacing:.1em;text-transform:uppercase}
