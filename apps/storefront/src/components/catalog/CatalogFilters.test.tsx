@@ -21,7 +21,7 @@ it("restores real catalog filters and preserves the search when changing categor
   expect(screen.getByRole("combobox", { name: "Marca" }).getAttribute("name")).toBe("marca");
   expect(screen.getByRole("link", { name: /Freios/ }).getAttribute("href")).toBe("/?q=cabo&categoria=freios&marca=bosch#catalogo");
   expect(screen.getByRole("link", { name: /Ignição/ }).getAttribute("aria-current")).toBe("page");
-  expect(screen.getByRole("link", { name: "Carro" }).getAttribute("href")).toBe("/?tipo=carro#catalogo");
+  expect(screen.getByRole("link", { name: "Carro" }).getAttribute("href")).toBe("/?q=cabo&categoria=ignicao&marca=bosch&tipo=carro#catalogo");
 });
 
 it("disables the brand filter when no real brands are registered", () => {
@@ -35,5 +35,15 @@ it("restores the four original search tabs without claiming unverified vehicle f
   expect(screen.getByRole("link", { name: "Moto" }).getAttribute("aria-current")).toBe("page");
   expect(screen.getByRole("link", { name: "Caminhão" }).getAttribute("href")).toBe("/?tipo=caminhao#catalogo");
   expect(screen.getByRole("link", { name: /selecione marca, modelo e ano/i }).getAttribute("href")).toBe("/veiculo");
-  expect(screen.queryByRole("heading", { name: "Peças em destaque" })).toBeNull();
+  expect(screen.getByRole("heading", { name: "Peças em destaque" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Freios/ }).getAttribute("href")).toBe("/?categoria=freios&tipo=moto#catalogo");
+  expect(screen.getByRole("link", { name: "Todas as peças" }).getAttribute("href")).toBe("/?tipo=moto#catalogo");
+});
+
+it("only offers supported filters for the illustrative catalog", () => {
+  render(<CatalogFilters facets={facets} catalogItems count={5} />);
+  expect(screen.getByRole("link", { name: /Freios/ }).getAttribute("href")).toBe("/?categoria=freios#catalogo");
+  expect(screen.getByRole("searchbox", { name: "Nome ou código" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Moto" }).getAttribute("href")).toBe("/?tipo=moto#catalogo");
+  expect(screen.queryByRole("combobox", { name: "Marca" })).toBeNull();
 });

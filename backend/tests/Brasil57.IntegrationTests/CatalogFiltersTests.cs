@@ -12,6 +12,57 @@ namespace Brasil57.IntegrationTests;
 public sealed class CatalogFiltersTests
 {
     [Fact]
+    public async Task Catalog_vehicle_filter_requires_recorded_source_and_combines_category()
+    {
+        var connection = Environment.GetEnvironmentVariable("BRASIL57_TEST_DATABASE")
+            ?? throw new InvalidOperationException("Defina BRASIL57_TEST_DATABASE para um PostgreSQL descartável.");
+        var options = new DbContextOptionsBuilder<StoreDbContext>().UseNpgsql(connection).Options;
+        var suffix = Guid.NewGuid().ToString("N");
+        var category = new Category { Name = "Freios teste", Slug = $"freios-{suffix}" };
+        var brand = new Brand { Name = "Marca teste", Slug = $"marca-{suffix}" };
+        var verified = new Product { Name = "Freio confirmado", Slug = $"confirmado-{suffix}", Sku = $"57BR-{suffix}", Category = category, Brand = brand, CatalogVisible = true, VehicleFamilies = ["moto", "carro"], CompatibilitySourceReference = "Catálogo fabricante", Inventory = new InventoryItem() };
+        var unverified = new Product { Name = "Freio pendente", Slug = $"pendente-{suffix}", Sku = $"57BR-P-{suffix}", Category = category, Brand = brand, CatalogVisible = true, VehicleFamilies = ["moto"], Inventory = new InventoryItem() };
+        await using (var db = new StoreDbContext(options)) { await db.Database.MigrateAsync(); db.Products.AddRange(verified, unverified); await db.SaveChangesAsync(); }
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => {
+            builder.UseSetting("ConnectionStrings:Default", connection);
+            builder.UseSetting("DataProtection:KeyPath", Path.Combine(Path.GetTempPath(), $"brasil57-catalog-vehicle-{suffix}"));
+        });
+        using var client = factory.CreateClient();
+        var result = await client.GetFromJsonAsync<ProductPage>($"/api/v1/catalog-items?group={category.Slug}&vehicleType=moto");
+        Assert.Equal(verified.Id, Assert.Single(result!.Items).Id);
+        Assert.Equal(0, (await client.GetFromJsonAsync<ProductPage>($"/api/v1/catalog-items?group={category.Slug}&vehicleType=caminhao"))!.Total);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/v1/catalog-items?vehicleType=onibus")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Parent_category_description_and_sort_are_applied_in_database()
+    {
+        var connection = Environment.GetEnvironmentVariable("BRASIL57_TEST_DATABASE")
+            ?? throw new InvalidOperationException("Defina BRASIL57_TEST_DATABASE para um PostgreSQL descartável.");
+        var options = new DbContextOptionsBuilder<StoreDbContext>().UseNpgsql(connection).Options;
+        var suffix = Guid.NewGuid().ToString("N");
+        var parent = new Category { Name = "Freios", Slug = $"freios-{suffix}" };
+        var child = new Category { Name = "Pastilhas", Slug = $"pastilhas-{suffix}", Parent = parent };
+        var brand = new Brand { Name = "Marca teste", Slug = $"marca-{suffix}" };
+        var products = new[] {
+            new Product { Name = "Primeiro", Slug = $"primeiro-{suffix}", Sku = $"A-{suffix}", Category = child, Brand = brand, Price = 20, Published = true, Description = "termo exclusivo", Inventory = new InventoryItem { OnHand = 1 } },
+            new Product { Name = "Segundo", Slug = $"segundo-{suffix}", Sku = $"B-{suffix}", Category = child, Brand = brand, Price = 10, Published = true, Description = "termo exclusivo", Inventory = new InventoryItem { OnHand = 1 } }
+        };
+        await using (var db = new StoreDbContext(options)) { await db.Database.MigrateAsync(); db.Products.AddRange(products); await db.SaveChangesAsync(); }
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => {
+            builder.UseSetting("ConnectionStrings:Default", connection);
+            builder.UseSetting("DataProtection:KeyPath", Path.Combine(Path.GetTempPath(), $"brasil57-search-{suffix}"));
+        });
+        using var client = factory.CreateClient();
+        var result = await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?category={parent.Slug}&q=exclusivo&sort=price_asc");
+        Assert.Equal(2, result!.Total);
+        Assert.Equal(products[1].Id, result.Items[0].Id);
+        Assert.Equal(products[0].Id, result.Items[1].Id);
+        Assert.Equal(0, (await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?category={parent.Slug}&q=%25"))!.Total);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/v1/products?sort=unknown")).StatusCode);
+    }
+
+    [Fact]
     public async Task Vehicle_family_filter_excludes_unpublished_drafts_and_handles_empty_results()
     {
         var connection = Environment.GetEnvironmentVariable("BRASIL57_TEST_DATABASE")

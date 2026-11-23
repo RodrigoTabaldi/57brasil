@@ -6,6 +6,7 @@ export type AdminProductRecord = {
   id: string; name: string; slug: string; sku: string; price: number; published: boolean;
   brandId: string; manufacturerCode: string | null; shortDescription: string | null; description: string | null;
   priceSourceReference: string | null; stockSourceReference: string | null; compatibilitySourceReference: string | null;
+  vehicleFamilies: string[];
   supplierConfirmedAt: string | null; applicationNotes: string | null;
   weightKg: number | null; heightCm: number | null; widthCm: number | null; lengthCm: number | null; available: number; imageUrl: string | null;
 };
@@ -27,6 +28,7 @@ export function ProductEditor({ product, brands, onSaved }: { product: AdminProd
       priceSourceReference: String(data.get("priceSourceReference") ?? "").trim(),
       stockSourceReference: String(data.get("stockSourceReference") ?? "").trim(),
       compatibilitySourceReference: String(data.get("compatibilitySourceReference") ?? "").trim(),
+      vehicleFamilies: data.getAll("vehicleFamilies").map(String),
       applicationNotes: String(data.get("applicationNotes") ?? "").trim(),
       supplierConfirmedAt: data.get("supplierConfirmedAt") ? new Date(String(data.get("supplierConfirmedAt"))).toISOString() : null,
       price: number("price"), weightKg: number("weightKg"), heightCm: number("heightCm"), widthCm: number("widthCm"), lengthCm: number("lengthCm"),
@@ -54,6 +56,7 @@ export function ProductEditor({ product, brands, onSaved }: { product: AdminProd
       <label>Documento do preço<input name="priceSourceReference" defaultValue={product.priceSourceReference ?? ""} minLength={5} maxLength={200} placeholder="Ex.: tabela 2026, página 4…" /></label>
       <label>Documento do estoque<input name="stockSourceReference" defaultValue={product.stockSourceReference ?? ""} minLength={5} maxLength={200} placeholder="Ex.: nota fiscal 123…" /></label>
       <label>Documento da aplicação veicular<input name="compatibilitySourceReference" defaultValue={product.compatibilitySourceReference ?? ""} minLength={5} maxLength={200} placeholder="Ex.: catálogo fabricante, página 8…" /></label>
+      <fieldset><legend>Tipos de veículo confirmados pelo documento</legend>{[["carro", "Carro"], ["moto", "Moto"], ["caminhao", "Caminhão"]].map(([value, label]) => <label key={value}><input type="checkbox" name="vehicleFamilies" value={value} defaultChecked={product.vehicleFamilies?.includes(value) ?? false} /> {label}</label>)}</fieldset>
       <label>Aplicação informada<textarea name="applicationNotes" defaultValue={product.applicationNotes ?? ""} maxLength={500} /></label>
       <label>Data da confirmação<input name="supplierConfirmedAt" type="date" defaultValue={product.supplierConfirmedAt?.slice(0, 10) ?? ""} /></label>
       <label>Peso (kg)<input name="weightKg" type="number" min="0.001" step="0.001" defaultValue={product.weightKg ?? ""} required /></label>

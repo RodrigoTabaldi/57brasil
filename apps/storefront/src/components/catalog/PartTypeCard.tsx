@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatPrice, type PartType } from "@/lib/catalog";
+import type { PartType } from "@/lib/catalog";
 import { CatalogImage } from "@/components/catalog/CatalogImage";
 
 export function PartTypeCard({ item }: { item: PartType }) {
@@ -12,7 +12,7 @@ export function PartTypeCard({ item }: { item: PartType }) {
       <div className="product-card-body">
         <span className="product-brand">{item.group}</span>
         <h3>{item.name}</h3>
-        <p className="part-type-status">Preço de referência: <strong>{formatPrice(item.referencePrice)}</strong><br />Disponibilidade a confirmar</p>
+        <p className="part-type-status">Preço e disponibilidade a confirmar</p>
       </div>
     </Link>
 

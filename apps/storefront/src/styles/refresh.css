@@ -194,6 +194,7 @@ h1,h2,h3,.journey-card strong,.store-group strong,.demo-piece-content strong{fon
 .catalog-search-panel>h3{margin:0 0 10px;text-align:center;font-size:1.15rem;line-height:1.25}
 .catalog-mode-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:min(100%,680px);margin:0 auto;padding:3px;border:2px solid #d8e2d9;border-radius:999px}
 .catalog-mode-tabs a{display:flex;align-items:center;justify-content:center;gap:8px;min-height:34px;padding:5px 10px;border-radius:999px;color:var(--ink);font-size:.82rem;font-weight:700;text-decoration:none;transition:background-color .2s,color .2s}
+.catalog-mode-tabs button{display:flex;align-items:center;justify-content:center;gap:8px;min-width:0;min-height:34px;padding:5px 10px;border:0;border-radius:999px;background:transparent;color:var(--muted);font:inherit;font-size:.82rem;font-weight:700;cursor:not-allowed}
 .catalog-mode-tabs a:hover{background:#edf5ec}
 .catalog-mode-tabs a[aria-current=page]{background:var(--green);color:#fff}
 .catalog-mode-tabs a[aria-current=page]:hover{background:#00552c}

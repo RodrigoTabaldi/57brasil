@@ -105,15 +105,19 @@ app.MapGet("/health/ready", async (StoreDbContext db, CancellationToken ct) => {
 app.MapAdmin();
 app.MapCustomers(app.Configuration);
 var api = app.MapGroup("/api/v1");
-api.MapGet("/catalog-items", async Task<IResult> (StoreDbContext db, string? q, string? group, int? page, CancellationToken ct) => {
+api.MapGet("/catalog-items", async Task<IResult> (StoreDbContext db, string? q, string? group, string? vehicleType, int? page, CancellationToken ct) => {
     if (q?.Length is > 120 || group?.Length is > 120) return Results.BadRequest();
+    if (vehicleType is not (null or "carro" or "moto" or "caminhao")) return Results.BadRequest();
     var currentPage = Math.Clamp(page ?? 1, 1, 10000);
     var query = db.Products.AsNoTracking().Where(x => x.CatalogVisible && x.Sku.StartsWith("57BR-"));
     if (!string.IsNullOrWhiteSpace(q)) { var term = q.Trim(); query = query.Where(x => EF.Functions.ILike(x.Name, $"%{term}%") || EF.Functions.ILike(x.Sku, $"%{term}%") || EF.Functions.ILike(x.Brand.Name, $"%{term}%") || (x.ManufacturerCode != null && EF.Functions.ILike(x.ManufacturerCode, $"%{term}%"))); }
-    if (!string.IsNullOrWhiteSpace(group)) query = query.Where(x => x.Category.Slug == group);
+    if (group == "suspensao-e-direcao") query = query.Where(x => x.Category.Slug == "suspensao-e-direcao" || x.Category.Slug == "suspensao" || x.Category.Slug == "direcao");
+    else if (group == "pneus-e-rodas") query = query.Where(x => x.Category.Slug == "pneus-e-rodas" || x.Category.Slug == "pneus");
+    else if (!string.IsNullOrWhiteSpace(group)) query = query.Where(x => x.Category.Slug == group);
+    if (vehicleType is not null) query = query.Where(x => x.CompatibilitySourceReference != null && x.CompatibilitySourceReference.Trim().Length >= 5 && x.VehicleFamilies.Contains(vehicleType));
     var total = await query.CountAsync(ct);
     var items = await query.OrderBy(x => x.Sku).Skip((currentPage - 1) * 24).Take(24).Select(x => new { x.Id, x.Name, x.Slug, ReferencePrice = x.Price, Group = x.Category.Name, GroupSlug = x.Category.Slug, ImageUrl = x.Images.OrderBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault() }).ToListAsync(ct);
-    return Results.Ok(new { items, total, page = currentPage, pageSize = 24 });
+    return Results.Ok(new { items, total, page = currentPage, pageSize = 24, vehicleTypeApplied = vehicleType });
 });
 api.MapGet("/catalog-items/groups", async (StoreDbContext db, CancellationToken ct) => await db.Products.AsNoTracking().Where(x => x.CatalogVisible && x.Sku.StartsWith("57BR-")).GroupBy(x => new { x.Category.Name, x.Category.Slug }).Select(x => new { x.Key.Name, x.Key.Slug, Count = x.Count() }).OrderBy(x => x.Name).ToListAsync(ct));
 api.MapGet("/catalog-items/{slug}", async (string slug, StoreDbContext db, CancellationToken ct) => await db.Products.AsNoTracking().Where(x => x.CatalogVisible && x.Sku.StartsWith("57BR-") && x.Slug == slug).Select(x => new { x.Id, x.Name, x.Slug, ReferencePrice = x.Price, Group = x.Category.Name, GroupSlug = x.Category.Slug, ImageUrl = x.Images.OrderBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault(), x.Sku, x.ManufacturerCode, Brand = x.Brand.Name, x.ShortDescription, x.Description }).FirstOrDefaultAsync(ct) is { } item ? Results.Ok(item) : Results.NotFound());
@@ -193,14 +197,22 @@ api.MapGet("/categories", async (StoreDbContext db, CatalogTaxonomyCache cache, 
 api.MapGet("/brands", async (StoreDbContext db, CatalogTaxonomyCache cache, CancellationToken ct) =>
     await cache.GetOrLoadAsync(CatalogTaxonomyCache.BrandsKey,
         () => db.Brands.AsNoTracking().Where(x => x.Slug != "marca-a-confirmar").OrderBy(x => x.Name).Select(x => new BrandOption(x.Id, x.Name, x.Slug)).ToListAsync(ct), ct));
-api.MapGet("/products", async Task<IResult> (CatalogReadRouter reader, string? q, string? category, string? brand, string? vehicleType, Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, int? page, CancellationToken ct) => {
+api.MapGet("/products", async Task<IResult> (CatalogReadRouter reader, string? q, string? category, string? brand, string? vehicleType, Guid? vehicleVersion, int? year, decimal? minPrice, decimal? maxPrice, string? sort, int? page, CancellationToken ct) => {
     if (!CatalogQueries.Valid(q, minPrice, maxPrice))
         return Results.ValidationProblem(new Dictionary<string, string[]> { ["filters"] = ["Busca ou faixa de preço inválida."] });
+    if (sort is not (null or "name" or "price_asc" or "price_desc" or "newest"))
+        return Results.ValidationProblem(new Dictionary<string, string[]> { ["sort"] = ["Ordenação inválida."] });
     var currentPage = Math.Clamp(page ?? 1, 1, 10000);
     return await reader.ReadAsync<IResult>(async db => {
         var query = CatalogQueries.Filter(db, q, category, brand, vehicleType, vehicleVersion, year, minPrice, maxPrice);
         var total = await query.CountAsync(ct);
-        var items = await query.OrderBy(x => x.Name).ThenBy(x => x.Id).Skip((currentPage - 1) * 24).Take(24).Select(x => new { x.Id, x.Name, x.Slug, x.Sku, Price = x.Price, Brand = x.Brand.Name, Category = x.Category.Name, Available = x.Inventory.OnHand - x.Inventory.Reserved, ImageUrl = x.Images.OrderBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault() }).ToListAsync(ct);
+        var ordered = sort switch {
+            "price_asc" => query.OrderBy(x => x.Price),
+            "price_desc" => query.OrderByDescending(x => x.Price),
+            "newest" => query.OrderByDescending(x => x.CreatedAt),
+            _ => query.OrderBy(x => x.Name)
+        };
+        var items = await ordered.ThenBy(x => x.Id).Skip((currentPage - 1) * 24).Take(24).Select(x => new { x.Id, x.Name, x.Slug, x.Sku, Price = x.Price, Brand = x.Brand.Name, Category = x.Category.Name, Available = x.Inventory.OnHand - x.Inventory.Reserved, ImageUrl = x.Images.OrderBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault() }).ToListAsync(ct);
         return Results.Ok(new { items, total, page = currentPage, pageSize = 24 });
     }, ct);
 });

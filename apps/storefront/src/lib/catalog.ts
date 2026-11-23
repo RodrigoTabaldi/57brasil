@@ -3,13 +3,16 @@ export type ProductDetail = ProductSummary & { manufacturerCode: string | null; 
 export type ProductPage = { items: ProductSummary[]; total: number; page: number; pageSize: number };
 export type ProductFacets = { categories: { slug: string; name: string; count: number }[]; brands: { slug: string; name: string; count: number }[] };
 export type PartType = { id: string; name: string; slug: string; group: string; groupSlug: string; imageUrl: string; referencePrice: number; sku?: string; manufacturerCode?: string; brand?: string; description?: string; shortDescription?: string };
-export type PartTypePage = { items: PartType[]; total: number; page: number; pageSize: number };
+export type PartTypePage = { items: PartType[]; total: number; page: number; pageSize: number; vehicleTypeApplied?: string | null };
 export type PartTypeGroup = { name: string; slug: string; count: number };
 const baseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5250";
 export async function getPartTypes(params: URLSearchParams): Promise<PartTypePage> {
   const response = await fetch(`${baseUrl}/api/v1/catalog-items?${params}`, { cache: "no-store" });
   if (!response.ok) throw new Error("Não foi possível carregar os tipos de peças.");
-  return response.json() as Promise<PartTypePage>;
+  const result = await response.json() as PartTypePage;
+  const vehicleType = params.get("vehicleType");
+  if (vehicleType && result.vehicleTypeApplied !== vehicleType) throw new Error("O filtro de veículo não está disponível nesta versão da API.");
+  return result;
 }
 export async function getPartTypeGroups(): Promise<PartTypeGroup[]> {
   const response = await fetch(`${baseUrl}/api/v1/catalog-items/groups`, { cache: "no-store" });
