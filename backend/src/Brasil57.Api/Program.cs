@@ -81,7 +81,7 @@ if (args.Contains("--migrate", StringComparer.Ordinal))
     var db = scope.ServiceProvider.GetRequiredService<StoreDbContext>();
     await db.Database.MigrateAsync();
     await CatalogSeed.EnsureDepartmentsAsync(db);
-    await CatalogSeed.EnsureCatalogDraftsAsync(db);
+    await CatalogSeed.EnsureProductsAsync(db);
     await PartTypeSeed.EnsureAsync(db);
     await BootstrapAdmin(scope.ServiceProvider, app.Configuration);
     return;
@@ -105,6 +105,18 @@ app.MapGet("/health/ready", async (StoreDbContext db, CancellationToken ct) => {
 app.MapAdmin();
 app.MapCustomers(app.Configuration);
 var api = app.MapGroup("/api/v1");
+api.MapGet("/catalog-items", async Task<IResult> (StoreDbContext db, string? q, string? group, int? page, CancellationToken ct) => {
+    if (q?.Length is > 120 || group?.Length is > 120) return Results.BadRequest();
+    var currentPage = Math.Clamp(page ?? 1, 1, 10000);
+    var query = db.Products.AsNoTracking().Where(x => x.CatalogVisible && x.Sku.StartsWith("57BR-"));
+    if (!string.IsNullOrWhiteSpace(q)) { var term = q.Trim(); query = query.Where(x => EF.Functions.ILike(x.Name, $"%{term}%") || EF.Functions.ILike(x.Sku, $"%{term}%") || EF.Functions.ILike(x.Brand.Name, $"%{term}%") || (x.ManufacturerCode != null && EF.Functions.ILike(x.ManufacturerCode, $"%{term}%"))); }
+    if (!string.IsNullOrWhiteSpace(group)) query = query.Where(x => x.Category.Slug == group);
+    var total = await query.CountAsync(ct);
+    var items = await query.OrderBy(x => x.Sku).Skip((currentPage - 1) * 24).Take(24).Select(x => new { x.Id, x.Name, x.Slug, ReferencePrice = x.Price, Group = x.Category.Name, GroupSlug = x.Category.Slug, ImageUrl = x.Images.OrderBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault() }).ToListAsync(ct);
+    return Results.Ok(new { items, total, page = currentPage, pageSize = 24 });
+});
+api.MapGet("/catalog-items/groups", async (StoreDbContext db, CancellationToken ct) => await db.Products.AsNoTracking().Where(x => x.CatalogVisible && x.Sku.StartsWith("57BR-")).GroupBy(x => new { x.Category.Name, x.Category.Slug }).Select(x => new { x.Key.Name, x.Key.Slug, Count = x.Count() }).OrderBy(x => x.Name).ToListAsync(ct));
+api.MapGet("/catalog-items/{slug}", async (string slug, StoreDbContext db, CancellationToken ct) => await db.Products.AsNoTracking().Where(x => x.CatalogVisible && x.Sku.StartsWith("57BR-") && x.Slug == slug).Select(x => new { x.Id, x.Name, x.Slug, ReferencePrice = x.Price, Group = x.Category.Name, GroupSlug = x.Category.Slug, ImageUrl = x.Images.OrderBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault(), x.Sku, x.ManufacturerCode, Brand = x.Brand.Name, x.ShortDescription, x.Description }).FirstOrDefaultAsync(ct) is { } item ? Results.Ok(item) : Results.NotFound());
 api.MapPost("/visits", async (HttpContext context, StoreDbContext db, CancellationToken ct) => {
     if (!SameOrigin(context)) return Results.StatusCode(403);
     var day = DateOnly.FromDateTime(DateTime.UtcNow);

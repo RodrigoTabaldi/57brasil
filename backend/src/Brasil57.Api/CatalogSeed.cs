@@ -7,6 +7,39 @@ namespace Brasil57.Api;
 
 public static class CatalogSeed
 {
+    public static async Task EnsureProductsAsync(StoreDbContext db)
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "catalog-products.json");
+        var products = JsonSerializer.Deserialize<List<InitialProduct>>(await File.ReadAllTextAsync(path), JsonSerializerOptions.Web)
+            ?? throw new InvalidOperationException("Catálogo inicial inválido.");
+        var existing = (await db.Products.Select(x => x.Sku).ToListAsync()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var categories = await db.Categories.ToDictionaryAsync(x => x.Slug);
+        var brands = await db.Brands.ToDictionaryAsync(x => x.Slug);
+        foreach (var item in products)
+        {
+            if (existing.Contains(item.Sku)) continue;
+            var categorySlug = PartTypeSeed.Slug(item.Category);
+            if (!categories.TryGetValue(categorySlug, out var category))
+                categories[categorySlug] = category = new Category { Name = item.Category, Slug = categorySlug };
+            var brandSlug = PartTypeSeed.Slug(item.Brand);
+            if (!brands.TryGetValue(brandSlug, out var brand))
+                brands[brandSlug] = brand = new Brand { Name = item.Brand, Slug = brandSlug };
+            var image = item.Subcategory switch {
+                "Filtro de óleo" => "filtro-de-oleo", "Filtro de ar do motor" => "filtro-de-ar", "Filtro de cabine" => "filtro-de-cabine", "Filtro de combustível" => "filtro-de-combustivel",
+                "Pastilha de freio" => "pastilha-de-freio", "Disco de freio" => "disco-de-freio", "Vela de ignição" => "vela-de-ignicao", "Bateria de partida" => "bateria", "Correia ou kit" => "correia-dentada",
+                "Amortecedor ou kit" => "amortecedor", "Terminal de direção" => "terminal-de-direcao", "Palheta limpa-vidro" => "palheta", "Pneu passeio" => "pneu",
+                _ => null
+            };
+            db.Products.Add(new Product { Name = item.Name, Slug = item.Sku.ToLowerInvariant(), Sku = item.Sku,
+                ManufacturerCode = item.ManufacturerCode, Category = category, Brand = brand, Price = item.ReferencePrice,
+                Published = false, CatalogVisible = true, ShortDescription = "Consulte a aplicação no catálogo do fabricante antes da compra.",
+                Description = $"{item.Subcategory}. Unidade: {item.Unit}. Consulte o fabricante para confirmar a aplicação.",
+                Inventory = new InventoryItem { OnHand = 0 }, Images = [new ProductImage { Url = image is null ? "/catalog-oil.svg" : $"/demo-products/{image}.png", AltText = $"Imagem ilustrativa de {item.Subcategory}" }] });
+        }
+        await db.SaveChangesAsync();
+    }
+
+    private sealed record InitialProduct(string Sku, string Category, string Subcategory, string Brand, string ManufacturerCode, string Name, decimal ReferencePrice, string Unit);
     private static readonly (string Name, string Slug)[] Departments =
     [
         ("Carros", "carros"), ("Caminhonetes e SUVs", "caminhonetes-e-suvs"),

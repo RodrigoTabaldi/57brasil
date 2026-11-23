@@ -31,7 +31,7 @@ export default async function ProductsPage({ searchParams }: Props) {
 
   return <main id="main-content" className="shell catalog-page">
     <nav className="breadcrumb" aria-label="Navegação estrutural"><Link href="/">Início</Link><span>/</span><span>Catálogo de peças</span></nav>
-    <div className="catalog-heading"><div><span className="section-kicker">CATÁLOGO 57 BRASIL</span><h1>{filters.q ? `Resultados para “${filters.q}”` : "Peças catalogadas"}</h1><p>Os itens fictícios cadastrados aparecem com imagens ilustrativas padronizadas. O botão COMPRAR registra uma solicitação para a equipe confirmar preço e disponibilidade.</p></div><SlidersHorizontal size={27} aria-hidden="true" /></div>
+    <div className="catalog-heading"><div><span className="section-kicker">CATÁLOGO 57 BRASIL</span><h1>{filters.q ? `Resultados para “${filters.q}”` : "Peças catalogadas"}</h1><p>Produtos cadastrados com imagens ilustrativas. Confirme aplicação, preço e disponibilidade antes da compra.</p></div><SlidersHorizontal size={27} aria-hidden="true" /></div>
     <div className="catalog-layout"><aside className="filter-panel"><h2>Filtrar peças</h2><form action="/produtos" method="get">
       <label htmlFor="catalog-q">Nome da peça</label><input id="catalog-q" name="q" type="search" defaultValue={filters.q ?? ""} placeholder="Ex.: filtro de óleo…" autoComplete="off" />
       <label htmlFor="catalog-group">Grupo</label><select id="catalog-group" name="grupo" defaultValue={selectedGroup ?? ""}><option value="">Todos os grupos</option>{groups?.map(item => <option key={item.slug} value={item.slug}>{item.name} ({item.count})</option>)}</select>

@@ -1,7 +1,6 @@
 import Link from "next/link";
-import type { PartType } from "@/lib/catalog";
+import { formatPrice, type PartType } from "@/lib/catalog";
 import { CatalogImage } from "@/components/catalog/CatalogImage";
-import { PartTypePurchaseButton } from "@/components/catalog/PartTypePurchaseButton";
 
 export function PartTypeCard({ item }: { item: PartType }) {
   return <article className="product-card showcase-card part-type-card">
@@ -13,9 +12,9 @@ export function PartTypeCard({ item }: { item: PartType }) {
       <div className="product-card-body">
         <span className="product-brand">{item.group}</span>
         <h3>{item.name}</h3>
-        <p className="part-type-status">Item demonstrativo · preço e disponibilidade a confirmar</p>
+        <p className="part-type-status">Preço de referência: <strong>{formatPrice(item.referencePrice)}</strong><br />Disponibilidade a confirmar</p>
       </div>
     </Link>
-    <div className="part-type-card-action"><PartTypePurchaseButton slug={item.slug} /></div>
+
   </article>;
 }
