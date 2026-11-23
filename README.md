@@ -130,7 +130,7 @@ O catálogo oferece busca, filtros por marca/categoria, faixa de preço, disponi
 
 ### Carrinho e administração
 
-O carrinho usa uma sessão anônima com cookie HttpOnly. A API confere preços e disponibilidade no banco e exige mesma origem nas escritas. Adicionar um item **não reserva estoque**. A administração exige autenticação e papel `Administrator` no servidor; o cadastro inicial de categoria, marca e produto possui auditoria.
+O carrinho usa uma sessão anônima com cookie HttpOnly. A API confere preços e disponibilidade no banco e exige a mesma origem nas escritas. Adicionar um item **não reserva estoque**. A administração exige autenticação e papel `Administrator` no servidor; o cadastro inicial de categoria, marca e produto possui auditoria.
 
 ### Frete e pagamento
 
