@@ -116,12 +116,31 @@ api.MapGet("/catalog-items", async Task<IResult> (StoreDbContext db, string? q, 
     else if (!string.IsNullOrWhiteSpace(group)) query = query.Where(x => x.Category.Slug == group || (x.Category.Parent != null && x.Category.Parent.Slug == group));
     if (vehicleType is not null) query = query.Where(x => x.CompatibilitySourceReference != null && x.CompatibilitySourceReference.Trim().Length >= 5 && x.VehicleFamilies.Contains(vehicleType));
     var total = await query.CountAsync(ct);
-    var items = await query.OrderBy(x => x.Sku).Skip((currentPage - 1) * 24).Take(24).Select(x => new { x.Id, x.Name, x.Slug, ReferencePrice = x.Price, Group = x.Category.Parent != null ? x.Category.Parent.Name : x.Category.Name, GroupSlug = x.Category.Parent != null ? x.Category.Parent.Slug : x.Category.Slug, Category = x.Category.Name, CategorySlug = x.Category.Slug, ImageUrl = x.Images.OrderBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault() }).ToListAsync(ct);
+    var items = await query.OrderBy(x => x.Sku).Skip((currentPage - 1) * 24).Take(24).Select(x => new { x.Id, x.Name, x.Slug, Group = x.Category.Parent != null ? x.Category.Parent.Name : x.Category.Name, GroupSlug = x.Category.Parent != null ? x.Category.Parent.Slug : x.Category.Slug, Category = x.Category.Name, CategorySlug = x.Category.Slug, ImageUrl = x.Images.OrderBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault() }).ToListAsync(ct);
     return Results.Ok(new { items, total, page = currentPage, pageSize = 24, vehicleTypeApplied = vehicleType });
 });
 api.MapGet("/catalog-items/groups", async (StoreDbContext db, CancellationToken ct) => await db.Products.AsNoTracking().Where(x => x.CatalogVisible && x.Sku.StartsWith("57BR-")).GroupBy(x => new { Name = x.Category.Parent != null ? x.Category.Parent.Name : x.Category.Name, Slug = x.Category.Parent != null ? x.Category.Parent.Slug : x.Category.Slug }).Select(x => new { x.Key.Name, x.Key.Slug, Count = x.Count() }).OrderBy(x => x.Name).ToListAsync(ct));
 api.MapGet("/catalog-items/categories", async (StoreDbContext db, CancellationToken ct) => await db.Products.AsNoTracking().Where(x => x.CatalogVisible && x.Sku.StartsWith("57BR-") && x.Category.ParentId != null).GroupBy(x => new { x.Category.Name, x.Category.Slug, GroupSlug = x.Category.Parent!.Slug }).Select(x => new { x.Key.Name, x.Key.Slug, x.Key.GroupSlug, Count = x.Count() }).OrderBy(x => x.Name).ToListAsync(ct));
-api.MapGet("/catalog-items/{slug}", async (string slug, StoreDbContext db, CancellationToken ct) => await db.Products.AsNoTracking().Where(x => x.CatalogVisible && x.Sku.StartsWith("57BR-") && x.Slug == slug).Select(x => new { x.Id, x.Name, x.Slug, ReferencePrice = x.Price, Group = x.Category.Parent != null ? x.Category.Parent.Name : x.Category.Name, GroupSlug = x.Category.Parent != null ? x.Category.Parent.Slug : x.Category.Slug, Category = x.Category.Name, CategorySlug = x.Category.Slug, ImageUrl = x.Images.OrderBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault(), x.Sku, x.ManufacturerCode, Brand = x.Brand.Name, x.ShortDescription, x.Description }).FirstOrDefaultAsync(ct) is { } item ? Results.Ok(item) : Results.NotFound());
+api.MapGet("/catalog-items/{slug}", async (string slug, StoreDbContext db, CancellationToken ct) => await db.Products.AsNoTracking().Where(x => x.CatalogVisible && x.Sku.StartsWith("57BR-") && x.Slug == slug).Select(x => new { x.Id, x.Name, x.Slug, Group = x.Category.Parent != null ? x.Category.Parent.Name : x.Category.Name, GroupSlug = x.Category.Parent != null ? x.Category.Parent.Slug : x.Category.Slug, Category = x.Category.Name, CategorySlug = x.Category.Slug, ImageUrl = x.Images.OrderBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault(), x.Sku, x.ManufacturerCode, Brand = x.Brand.Name, x.ShortDescription, x.Description }).FirstOrDefaultAsync(ct) is { } item ? Results.Ok(item) : Results.NotFound());
+api.MapPost("/products/{productId:guid}/purchase-requests", async (Guid productId, HttpContext context, ProductPurchaseRequestInput input, StoreDbContext db, CancellationToken ct) => {
+    if (!SameOrigin(context)) return Results.StatusCode(403);
+    var userId = CustomerId(context);
+    if (userId is null) return Results.Unauthorized();
+    static bool Valid(string? value, int max) => !string.IsNullOrWhiteSpace(value) && value.Trim().Length <= max && !value.Any(char.IsControl);
+    var cep = input.Cep?.Replace("-", "").Trim();
+    if (input.Quantity is < 1 or > 99 || cep is not { Length: 8 } || !cep.All(char.IsAsciiDigit) ||
+        !Valid(input.Street, 200) || !Valid(input.Number, 30) || !Valid(input.Neighborhood, 100) || !Valid(input.City, 100) ||
+        input.State is null || input.State.Trim().Length != 2 || !input.State.Trim().All(char.IsAsciiLetter) ||
+        (input.Complement is not null && input.Complement.Length > 0 && !Valid(input.Complement, 100)))
+        return Results.ValidationProblem(new Dictionary<string, string[]> { ["address"] = ["Informe quantidade e endereço válidos."] });
+    if (!await db.Products.AnyAsync(x => x.Id == productId && (x.Published || x.CatalogVisible), ct)) return Results.NotFound();
+    var request = new ProductPurchaseRequest { UserId = userId.Value, ProductId = productId, Quantity = input.Quantity, Cep = cep,
+        Street = input.Street!.Trim(), Number = input.Number!.Trim(), Complement = string.IsNullOrWhiteSpace(input.Complement) ? null : input.Complement.Trim(),
+        Neighborhood = input.Neighborhood!.Trim(), City = input.City!.Trim(), State = input.State.Trim().ToUpperInvariant() };
+    db.ProductPurchaseRequests.Add(request);
+    await db.SaveChangesAsync(ct);
+    return Results.Accepted(value: new { request.Id, message = "Solicitação registrada; preço e disponibilidade serão confirmados antes da compra." });
+}).RequireAuthorization().RequireRateLimiting("account");
 api.MapPost("/visits", async (HttpContext context, StoreDbContext db, CancellationToken ct) => {
     if (!SameOrigin(context)) return Results.StatusCode(403);
     var day = DateOnly.FromDateTime(DateTime.UtcNow);

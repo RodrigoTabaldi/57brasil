@@ -8,6 +8,7 @@ public sealed class StoreDbContext(DbContextOptions<StoreDbContext> options) : I
 {
     public DbSet<PartType> PartTypes => Set<PartType>();
     public DbSet<PartTypePurchaseRequest> PartTypePurchaseRequests => Set<PartTypePurchaseRequest>();
+    public DbSet<ProductPurchaseRequest> ProductPurchaseRequests => Set<ProductPurchaseRequest>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Brand> Brands => Set<Brand>();
     public DbSet<Product> Products => Set<Product>();
@@ -31,6 +32,16 @@ public sealed class StoreDbContext(DbContextOptions<StoreDbContext> options) : I
     protected override void OnModelCreating(ModelBuilder model)
     {
         base.OnModelCreating(model);
+        model.Entity<ProductPurchaseRequest>(e => {
+            e.HasKey(x => x.Id); e.HasIndex(x => new { x.UserId, x.CreatedAt });
+            e.HasOne<StoreUser>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Product>().WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
+            e.Property(x => x.Cep).HasMaxLength(8); e.Property(x => x.Street).HasMaxLength(200);
+            e.Property(x => x.Number).HasMaxLength(30); e.Property(x => x.Complement).HasMaxLength(100);
+            e.Property(x => x.Neighborhood).HasMaxLength(100); e.Property(x => x.City).HasMaxLength(100);
+            e.Property(x => x.State).HasMaxLength(2); e.Property(x => x.Status).HasMaxLength(40);
+            e.ToTable(t => t.HasCheckConstraint("ck_product_purchase_request_quantity", "\"Quantity\" > 0 AND \"Quantity\" <= 99"));
+        });
         model.Entity<PartType>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.Slug).IsUnique(); e.HasIndex(x => x.GroupSlug); e.Property(x => x.Name).HasMaxLength(160); e.Property(x => x.Slug).HasMaxLength(180); e.Property(x => x.Group).HasMaxLength(100); e.Property(x => x.GroupSlug).HasMaxLength(120); e.Property(x => x.Status).HasMaxLength(80); e.Property(x => x.ImageUrl).HasMaxLength(300); });
         model.Entity<PartTypePurchaseRequest>(e => { e.HasKey(x => x.Id); e.HasIndex(x => x.CreatedAt); e.HasIndex(x => new { x.UserId, x.PartTypeId, x.CreatedAt }); e.Property(x => x.Status).HasMaxLength(40); e.HasOne<StoreUser>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade); e.HasOne(x => x.PartType).WithMany().HasForeignKey(x => x.PartTypeId).OnDelete(DeleteBehavior.Restrict); e.ToTable(t => t.HasCheckConstraint("ck_part_type_purchase_request_quantity", "\"Quantity\" > 0 AND \"Quantity\" <= 99")); });
         model.Entity<AuditLog>(e => { e.HasKey(x => x.Id); e.Property(x => x.Action).HasMaxLength(80); e.Property(x => x.Entity).HasMaxLength(80); e.Property(x => x.EvidenceSnapshot).HasColumnType("jsonb"); e.HasIndex(x => x.CreatedAt); });

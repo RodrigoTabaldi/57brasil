@@ -8,6 +8,7 @@ type Page<T> = { items: T[]; total: number; page: number; pageSize: number };
 type Order = { id: string; status: string; buyerEmail: string; shippingAddress: string | null; itemsTotal: number; shippingTotal: number; createdAt: string; items: { sku: string; name: string; quantity: number; unitPrice: number }[] };
 type Account = { id: string; fullName: string; email: string; emailConfirmed: boolean };
 type PartTypePurchaseRequest = { id: string; name: string; group: string; quantity: number; status: string; createdAt: string; fullName: string; email: string };
+type ProductPurchaseRequest = { id: string; name: string; sku: string; quantity: number; fullName: string; email: string; cep: string; street: string; number: string; complement: string | null; neighborhood: string; city: string; state: string };
 type Dashboard = { products: number; publishedProducts: number; lowStock: number };
 type Overview = { accounts: number; orders: number; pendingOrders: number; visitsToday: number; visitsSevenDays: number };
 const emptyPage = <T,>(): Page<T> => ({ items: [], total: 0, page: 1, pageSize: 50 });
@@ -25,6 +26,8 @@ export default function AdminPage() {
   const [products, setProducts] = useState<Page<AdminProductRecord>>(emptyPage());
   const [orders, setOrders] = useState<Page<Order>>(emptyPage());
   const [purchaseRequests, setPurchaseRequests] = useState<Page<PartTypePurchaseRequest>>(emptyPage());
+  const [productRequests, setProductRequests] = useState<Page<ProductPurchaseRequest>>(emptyPage());
+  const [productRequestPage, setProductRequestPage] = useState(1);
   const [accounts, setAccounts] = useState<Page<Account>>(emptyPage());
   const [categories, setCategories] = useState<Option[]>([]);
   const [brands, setBrands] = useState<Option[]>([]);
@@ -38,21 +41,23 @@ export default function AdminPage() {
     try {
       const response = await fetch("/api/v1/admin/dashboard", { cache: "no-store" });
       if (!response.ok) { setAuthorized(false); return; }
-      const [stats, operational, productResults, orderResults, requestResults, accountResults, categoryResults, brandResults] = await Promise.all([
+      const [stats, operational, productResults, orderResults, requestResults, productRequestResults, accountResults, categoryResults, brandResults] = await Promise.all([
         response.json() as Promise<Dashboard>,
         fetch("/api/v1/admin/overview", { cache: "no-store" }).then(r => r.json() as Promise<Overview>),
         fetch(`/api/v1/admin/products?page=${productPage}&q=${encodeURIComponent(search)}`, { cache: "no-store" }).then(r => r.json() as Promise<Page<AdminProductRecord>>),
         fetch(`/api/v1/admin/orders?page=${orderPage}`, { cache: "no-store" }).then(r => r.json() as Promise<Page<Order>>),
         fetch(`/api/v1/admin/part-type-purchase-requests?page=${purchaseRequestPage}`, { cache: "no-store" }).then(r => r.json() as Promise<Page<PartTypePurchaseRequest>>),
+        fetch(`/api/v1/admin/product-purchase-requests?page=${productRequestPage}`, { cache: "no-store" }).then(r => { if (!r.ok) throw new Error(); return r.json() as Promise<Page<ProductPurchaseRequest>>; }),
         fetch(`/api/v1/admin/accounts?page=${accountPage}`, { cache: "no-store" }).then(r => r.json() as Promise<Page<Account>>),
         fetch("/api/v1/admin/categories", { cache: "no-store" }).then(r => r.json() as Promise<Option[]>),
         fetch("/api/v1/brands", { cache: "no-store" }).then(r => r.json() as Promise<Option[]>),
       ]);
       setDashboard(stats); setOverview(operational); setProducts(productResults); setOrders(orderResults); setPurchaseRequests(requestResults);
+      setProductRequests(productRequestResults);
       setAccounts(accountResults); setCategories(categoryResults); setBrands(brandResults); setAuthorized(true);
     } catch { setMessage("Não foi possível carregar o painel."); }
     finally { setLoading(false); }
-  }, [search, productPage, orderPage, accountPage, purchaseRequestPage]);
+  }, [search, productPage, orderPage, accountPage, purchaseRequestPage, productRequestPage]);
   useEffect(() => { void refresh(); }, [refresh]);
   useEffect(() => {
     const onAuthUpdated = () => { void refresh(); };
@@ -126,6 +131,7 @@ export default function AdminPage() {
         <label>Nome<input name="name" required maxLength={120} /></label><label>Slug<input name="slug" required pattern="[a-z0-9]+(-[a-z0-9]+)*" /></label><label>SKU<input name="sku" required maxLength={80} /></label><label>Tipo<select name="categoryId" required><option value="">Selecione</option>{categories.filter(x => x.active).map(x => <option value={x.id} key={x.id}>{x.name}</option>)}</select></label><label>Marca<select name="brandId" required><option value="">Selecione</option>{brands.map(x => <option value={x.id} key={x.id}>{x.name}</option>)}</select></label><label>Imagem do produto (URL HTTPS)<input name="imageUrl" type="url" pattern="https://.+" maxLength={500} placeholder="https://exemplo.com/imagem.jpg" /></label><label>Texto alternativo<input name="imageAltText" maxLength={200} placeholder="Ex.: filtro de óleo visto de frente" /></label><label>Preço recebido (R$)<input name="price" type="number" min="0" step="0.01" required /></label><label>Fonte do preço<input name="priceSourceReference" minLength={5} maxLength={200} /></label><label>Estoque<input name="stock" type="number" min="0" step="1" required /></label><label>Fonte do estoque<input name="stockSourceReference" minLength={5} maxLength={200} /></label><label>Fonte da aplicação<input name="compatibilitySourceReference" minLength={5} maxLength={200} /></label><label>Aplicação informada<textarea name="applicationNotes" maxLength={500} /></label><label>Data da confirmação<input name="supplierConfirmedAt" type="date" /></label><label>Peso (kg)<input name="weightKg" type="number" min="0.001" step="0.001" /></label><label>Altura (cm)<input name="heightCm" type="number" min="0.01" step="0.01" /></label><label>Largura (cm)<input name="widthCm" type="number" min="0.01" step="0.01" /></label><label>Comprimento (cm)<input name="lengthCm" type="number" min="0.01" step="0.01" /></label>
       </div><button className="button">Salvar rascunho</button></form>
       <section><h2>Produtos cadastrados</h2><form onSubmit={e => { e.preventDefault(); setProductPage(1); setSearch(String(new FormData(e.currentTarget).get("q") ?? "")); }}><label>Buscar por nome ou SKU<input name="q" defaultValue={search} maxLength={120} /></label><button type="submit">Buscar</button></form><p>{products.total} produtos</p><ul>{products.items.map(x => <li key={x.id}>{x.name} · {x.sku} · {x.published ? "Publicado" : "Rascunho"} <button type="button" onClick={() => void toggle(x)}>{x.published ? "Desativar" : "Publicar"}</button><ProductEditor product={x} brands={brands} onSaved={refresh} /></li>)}</ul><Pager page={products.page} total={products.total} size={products.pageSize} setPage={setProductPage} /></section>
+      <section><h2>Solicitações de produtos</h2><p>Confirme preço e disponibilidade com o fornecedor.</p>{productRequests.items.length === 0 ? <p>Nenhuma solicitação recebida.</p> : <ul>{productRequests.items.map(x => <li key={x.id}><strong>{x.name}</strong> ({x.sku}) · quantidade {x.quantity}<p>{x.fullName} · {x.email}</p><p>{x.street}, {x.number}{x.complement ? `, ${x.complement}` : ""} · {x.neighborhood} · {x.city}/{x.state} · CEP {x.cep}</p></li>)}</ul>}<Pager page={productRequests.page} total={productRequests.total} size={productRequests.pageSize} setPage={setProductRequestPage} /></section>
       <section><h2>Pedidos</h2>{orders.items.length === 0 ? <p>Nenhum pedido registrado.</p> : <ul>{orders.items.map(x => <li key={x.id}><strong>{x.id}</strong> · {x.status} · {x.buyerEmail} · {new Date(x.createdAt).toLocaleDateString("pt-BR")} · {money.format(x.itemsTotal + x.shippingTotal)}<p>Endereço: {x.shippingAddress || "Não informado"}</p><ul>{x.items.map(i => <li key={i.sku}>{i.quantity} × {i.name} ({i.sku}) · {money.format(i.unitPrice)}</li>)}</ul></li>)}</ul>}<Pager page={orders.page} total={orders.total} size={orders.pageSize} setPage={setOrderPage} /></section>
       <section><h2>Contas de usuários</h2>{accounts.items.length === 0 ? <p>Nenhuma conta nesta página.</p> : <ul>{accounts.items.map(x => <li key={x.id}>{x.fullName || "Sem nome"} · {x.email} · {x.emailConfirmed ? "E-mail confirmado" : "E-mail não confirmado"}</li>)}</ul>}<Pager page={accounts.page} total={accounts.total} size={accounts.pageSize} setPage={setAccountPage} /></section>
     </>}

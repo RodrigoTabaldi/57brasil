@@ -6,7 +6,7 @@ import { SearchBox } from "@/components/ui/SearchBox";
 import { DepartmentMenu } from "@/components/layout/DepartmentMenu";
 
 type PartGroup = { name: string; slug: string };
-const apiUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5250";
+const apiUrl = process.env.API_INTERNAL_URL ?? "http://127.0.0.1:5250";
 
 export async function SiteHeader() {
   let groups: PartGroup[] = [];

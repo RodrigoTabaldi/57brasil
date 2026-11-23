@@ -52,6 +52,16 @@ it("keeps filters in pagination links", async () => {
   expect(screen.getByRole("link", { name: "Próxima" }).getAttribute("href")).toBe("/produtos?q=filtro&grupo=motor&page=3#pecas-catalogadas");
 });
 
+it("makes all 100 catalog items reachable through pagination", async () => {
+  catalogMocks.getPartTypes.mockResolvedValue({ items: [{ id: "100", name: "Última peça" }], total: 100, page: 5, pageSize: 24 });
+  render(await ProductsPage({ searchParams: Promise.resolve({ page: "5" }) }));
+  expect((catalogMocks.getPartTypes.mock.calls[0][0] as URLSearchParams).get("page")).toBe("5");
+  expect(screen.getByText("Última peça")).toBeTruthy();
+  expect(screen.getByRole("status").textContent).toBe("100 itens cadastrados");
+  expect(screen.getByRole("link", { name: "Anterior" }).getAttribute("href")).toContain("page=4");
+  expect(screen.queryByRole("link", { name: "Próxima" })).toBeNull();
+});
+
 it("shows a retry message when loading parts fails", async () => {
   catalogMocks.getPartTypes.mockRejectedValue(new Error("API unavailable"));
   render(await ProductsPage({ searchParams: Promise.resolve({}) }));

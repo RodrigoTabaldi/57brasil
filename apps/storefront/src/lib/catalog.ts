@@ -2,7 +2,7 @@ export type ProductSummary = { id: string; name: string; slug: string; sku: stri
 export type ProductDetail = ProductSummary & { manufacturerCode: string | null; shortDescription: string | null; description: string | null; brandSlug: string; categorySlug: string; weightKg: number | null; heightCm: number | null; widthCm: number | null; lengthCm: number | null; images: { id: string; url: string; altText: string }[] };
 export type ProductPage = { items: ProductSummary[]; total: number; page: number; pageSize: number };
 export type ProductFacets = { categories: { slug: string; name: string; count: number }[]; brands: { slug: string; name: string; count: number }[] };
-export type PartType = { id: string; name: string; slug: string; group: string; groupSlug: string; imageUrl: string; referencePrice: number; sku?: string; manufacturerCode?: string; brand?: string; description?: string; shortDescription?: string };
+export type PartType = { id: string; name: string; slug: string; group: string; groupSlug: string; imageUrl: string; sku?: string; manufacturerCode?: string; brand?: string; description?: string; shortDescription?: string };
 export type PartTypePage = { items: PartType[]; total: number; page: number; pageSize: number; vehicleTypeApplied?: string | null };
 export type PartTypeGroup = { name: string; slug: string; count: number };
 export type CatalogCategory = PartTypeGroup & { groupSlug: string };
@@ -11,7 +11,7 @@ export function catalogItemImage(item: PartType): string {
     ? "/demo-parts/motor-oil-white.png"
     : item.imageUrl;
 }
-const baseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5250";
+const baseUrl = process.env.API_INTERNAL_URL ?? "http://127.0.0.1:5250";
 export async function getPartTypes(params: URLSearchParams): Promise<PartTypePage> {
   const response = await fetch(`${baseUrl}/api/v1/catalog-items?${params}`, { cache: "no-store" });
   if (!response.ok) throw new Error("Não foi possível carregar os tipos de peças.");
