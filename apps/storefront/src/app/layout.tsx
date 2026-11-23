@@ -3,6 +3,7 @@ import "@fontsource-variable/manrope";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { BackButton } from "@/components/layout/BackButton";
+import { VisitCounter } from "@/components/layout/VisitCounter";
 import "./globals.css";
 import "../styles/base.css";
 import "../styles/layout.css";
@@ -28,5 +29,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="pt-BR"><body><a className="skip-link" href="#main-content">Pular para o conteúdo</a><SiteHeader/><BackButton/>{children}<SiteFooter/></body></html>;
+  return <html lang="pt-BR"><body><VisitCounter/><a className="skip-link" href="#main-content">Pular para o conteúdo</a><SiteHeader/><BackButton/>{children}<SiteFooter/></body></html>;
 }

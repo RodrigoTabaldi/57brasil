@@ -194,6 +194,22 @@ namespace Brasil57.Infrastructure.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("Brasil57.Domain.DailyVisit", b =>
+                {
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date");
+
+                    b.Property<long>("Count")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Day");
+
+                    b.ToTable("DailyVisits", t =>
+                        {
+                            t.HasCheckConstraint("ck_daily_visit_count", "\"Count\" >= 0");
+                        });
+                });
+
             modelBuilder.Entity("Brasil57.Domain.InventoryItem", b =>
                 {
                     b.Property<Guid>("ProductId")
@@ -250,6 +266,9 @@ namespace Brasil57.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ShippingAddress")
+                        .HasColumnType("text");
 
                     b.Property<decimal>("ShippingTotal")
                         .HasPrecision(12, 2)
@@ -520,6 +539,9 @@ namespace Brasil57.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ApplicationNotes")
+                        .HasColumnType("text");
+
                     b.Property<Guid>("BrandId")
                         .HasColumnType("uuid");
 
@@ -583,6 +605,9 @@ namespace Brasil57.Infrastructure.Migrations
                     b.Property<string>("StockSourceReference")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<DateTimeOffset?>("SupplierConfirmedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.PrimitiveCollection<string[]>("VehicleFamilies")
                         .IsRequired()

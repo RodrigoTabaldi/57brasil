@@ -40,7 +40,15 @@ builder.Services.AddSingleton(new PaymentNotificationQueue(builder.Configuration
 builder.Services.AddIdentityCore<StoreUser>(options => { options.Password.RequiredLength = 12; options.Lockout.MaxFailedAccessAttempts = 5; options.User.RequireUniqueEmail = true; }).AddRoles<IdentityRole<Guid>>().AddEntityFrameworkStores<StoreDbContext>().AddSignInManager().AddDefaultTokenProviders();
 builder.Services.Configure<DataProtectionTokenProviderOptions>(options => options.TokenLifespan = TimeSpan.FromHours(1));
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdentityCookies();
-builder.Services.ConfigureApplicationCookie(options => { options.Cookie.HttpOnly = true; options.Cookie.SameSite = SameSiteMode.Strict; options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always; options.ExpireTimeSpan = TimeSpan.FromHours(8); options.SlidingExpiration = true; options.Events.OnRedirectToLogin = context => { context.Response.StatusCode = 401; return Task.CompletedTask; }; options.Events.OnRedirectToAccessDenied = context => { context.Response.StatusCode = 403; return Task.CompletedTask; }; });
+builder.Services.ConfigureApplicationCookie(options => { options.Cookie.HttpOnly = true; options.Cookie.SameSite = SameSiteMode.Strict; options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always; options.ExpireTimeSpan = TimeSpan.FromHours(8); options.SlidingExpiration = true; options.Events.OnValidatePrincipal = async context => {
+    var mfa = context.Principal?.HasClaim("admin_mfa", "true") == true;
+    var setup = context.Principal?.HasClaim("admin_setup", "true") == true;
+    await SecurityStampValidator.ValidatePrincipalAsync(context);
+    if (context.Principal?.Identity is System.Security.Claims.ClaimsIdentity identity) {
+        if (mfa && !context.Principal.HasClaim("admin_mfa", "true")) { identity.AddClaim(new System.Security.Claims.Claim("admin_mfa", "true")); context.ShouldRenew = true; }
+        if (setup && !context.Principal.HasClaim("admin_setup", "true")) { identity.AddClaim(new System.Security.Claims.Claim("admin_setup", "true")); context.ShouldRenew = true; }
+    }
+}; options.Events.OnRedirectToLogin = context => { context.Response.StatusCode = 401; return Task.CompletedTask; }; options.Events.OnRedirectToAccessDenied = context => { context.Response.StatusCode = 403; return Task.CompletedTask; }; });
 builder.Services.AddAuthorization();
 builder.Services.Configure<SecurityStampValidatorOptions>(o => o.ValidationInterval = TimeSpan.Zero);
 var shippingToken = builder.Configuration["Shipping:Token"];
@@ -97,6 +105,12 @@ app.MapGet("/health/ready", async (StoreDbContext db, CancellationToken ct) => {
 app.MapAdmin();
 app.MapCustomers(app.Configuration);
 var api = app.MapGroup("/api/v1");
+api.MapPost("/visits", async (HttpContext context, StoreDbContext db, CancellationToken ct) => {
+    if (!SameOrigin(context)) return Results.StatusCode(403);
+    var day = DateOnly.FromDateTime(DateTime.UtcNow);
+    await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"DailyVisits\" (\"Day\", \"Count\") VALUES ({day}, 1) ON CONFLICT (\"Day\") DO UPDATE SET \"Count\" = \"DailyVisits\".\"Count\" + 1", ct);
+    return Results.NoContent();
+});
 api.MapGet("/part-types", async Task<IResult> (StoreDbContext db, string? q, string? group, int? page, CancellationToken ct) => {
     if (q?.Length is > 120 || group?.Length is > 120) return Results.BadRequest();
     var currentPage = Math.Clamp(page ?? 1, 1, 10000);
@@ -284,14 +298,18 @@ api.MapPatch("/cart/items/{itemId:guid}", async (Guid itemId, HttpContext contex
 }).RequireAuthorization();static async Task BootstrapAdmin(IServiceProvider services, IConfiguration configuration)
 {
     var email = configuration["BootstrapAdmin:Email"]; var password = configuration["BootstrapAdmin:Password"];
-    if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password)) return;
+    if (string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(password)) return;
+    if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password)) throw new InvalidOperationException("Informe e-mail e senha apenas no bootstrap inicial; remova ambas as variÃ¡veis depois.");
     var users = services.GetRequiredService<UserManager<StoreUser>>(); var roles = services.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
     if (!await roles.RoleExistsAsync("Administrator")) { var roleResult = await roles.CreateAsync(new IdentityRole<Guid>("Administrator")); if (!roleResult.Succeeded) throw new InvalidOperationException("Falha ao criar papel administrativo."); }
+    var existingAdmins = await users.GetUsersInRoleAsync("Administrator");
+    if (existingAdmins.Count > 1 || (existingAdmins.Count == 1 && !string.Equals(existingAdmins[0].Email, email, StringComparison.OrdinalIgnoreCase)))
+        throw new InvalidOperationException("JÃ¡ existe outra conta administrativa. Remova as credenciais de bootstrap e investigue a divergÃªncia.");
     // Never elevate an account that could have been registered through the public endpoint.
     var existing = await users.FindByEmailAsync(email);
     if (existing is not null)
     {
-        if (await users.IsInRoleAsync(existing, "Administrator")) return;
+        if (await users.IsInRoleAsync(existing, "Administrator")) throw new InvalidOperationException("Administrador jÃ¡ criado. Remova BOOTSTRAP_ADMIN_PASSWORD do ambiente antes de executar nova migraÃ§Ã£o.");
         throw new InvalidOperationException("O e-mail de bootstrap já pertence a uma conta existente. Escolha outro e-mail e investigue a conta antes de prosseguir.");
     }
     var user = new StoreUser { UserName = email, Email = email, EmailConfirmed = true };
