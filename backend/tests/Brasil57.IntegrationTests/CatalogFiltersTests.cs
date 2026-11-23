@@ -12,6 +12,55 @@ namespace Brasil57.IntegrationTests;
 public sealed class CatalogFiltersTests
 {
     [Fact]
+    public async Task Vehicle_family_filter_returns_existing_drafts_with_reference_images_and_empty_results()
+    {
+        var connection = Environment.GetEnvironmentVariable("BRASIL57_TEST_DATABASE")
+            ?? throw new InvalidOperationException("Defina BRASIL57_TEST_DATABASE para um PostgreSQL descartável.");
+        var options = new DbContextOptionsBuilder<StoreDbContext>().UseNpgsql(connection).Options;
+        var suffix = Guid.NewGuid().ToString("N");
+        var category = new Category { Name = "Categoria de teste", Slug = $"family-test-{suffix}" };
+        var brand = new Brand { Name = "Marca de teste", Slug = $"family-brand-{suffix}" };
+        var families = new[] { "carro", "moto", "caminhao" };
+        var products = families.Select(family => new Product
+        {
+            Name = $"Cadastro {family}", Slug = $"family-{family}-{suffix}", Sku = $"FAMILY-{family}-{suffix}",
+            Category = category, Brand = brand, Published = false, CatalogVisible = true,
+            VehicleFamilies = [family], Inventory = new InventoryItem { OnHand = 0 },
+            Images = [new ProductImage { Url = $"/demo-products/{family}.png", AltText = "Imagem de referência" }]
+        }).ToArray();
+        await using (var setup = new StoreDbContext(options))
+        {
+            await setup.Database.MigrateAsync();
+            setup.Products.AddRange(products);
+            await setup.SaveChangesAsync();
+        }
+
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder => {
+            builder.UseSetting("ConnectionStrings:Default", connection);
+            builder.UseSetting("DataProtection:KeyPath", Path.Combine(Path.GetTempPath(), $"brasil57-family-{suffix}"));
+        });
+        using var client = factory.CreateClient();
+
+        foreach (var (family, product) in families.Zip(products))
+        {
+            var result = await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?vehicleType={family}&category={category.Slug}");
+            Assert.NotNull(result);
+            var item = Assert.Single(result.Items);
+            Assert.Equal(product.Id, item.Id);
+            Assert.Equal($"/demo-products/{family}.png", item.ImageUrl);
+        }
+
+        var noMatch = await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?vehicleType=onibus&category={category.Slug}");
+        Assert.NotNull(noMatch);
+        Assert.Empty(noMatch.Items);
+        Assert.Equal(0, noMatch.Total);
+        var draftsOnly = await client.GetFromJsonAsync<ProductPage>($"/api/v1/products?vehicleType=moto&category={category.Slug}&approvedOnly=true");
+        Assert.NotNull(draftsOnly);
+        Assert.Empty(draftsOnly.Items);
+        Assert.Equal(0, draftsOnly.Total);
+    }
+
+    [Fact]
     public async Task Vehicle_application_is_hidden_until_its_document_is_recorded()
     {
         var connection = Environment.GetEnvironmentVariable("BRASIL57_TEST_DATABASE")
@@ -86,7 +135,7 @@ public sealed class CatalogFiltersTests
     }
 
     private sealed record ProductPage(List<ProductItem> Items, int Total);
-    private sealed record ProductItem(Guid Id);
+    private sealed record ProductItem(Guid Id, string? ImageUrl);
     private sealed record Facets(List<Facet> Categories, List<Facet> Brands);
     private sealed record Facet(string Slug, int Count);
 }
