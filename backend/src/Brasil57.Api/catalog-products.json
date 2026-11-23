@@ -1,0 +1,1002 @@
+[
+  {
+    "sku": "57BR-0001",
+    "category": "Óleos e lubrificantes",
+    "subcategory": "óleo de motor",
+    "brand": "Mobil",
+    "manufacturerCode": "123889SP",
+    "name": "óleo de motor 5W30 Mobil Super 3000 D1 API SP sintético 1L",
+    "referencePrice": 39.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0002",
+    "category": "Óleos e lubrificantes",
+    "subcategory": "óleo de motor",
+    "brand": "Mobil",
+    "manufacturerCode": "123943",
+    "name": "óleo de motor 5W30 Mobil Super 3000 sintético 1L",
+    "referencePrice": 32.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0003",
+    "category": "Óleos e lubrificantes",
+    "subcategory": "óleo de motor",
+    "brand": "Mobil",
+    "manufacturerCode": "123847",
+    "name": "óleo de motor 0W20 Mobil Super 3000 Fórmula D1 sintético 1L",
+    "referencePrice": 46.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0004",
+    "category": "Óleos e lubrificantes",
+    "subcategory": "óleo de motor",
+    "brand": "Mobil",
+    "manufacturerCode": "123223",
+    "name": "óleo de motor 10W40 Mobil Super 2000 X3 semissintético 1L",
+    "referencePrice": 39.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0005",
+    "category": "Óleos e lubrificantes",
+    "subcategory": "óleo de motor",
+    "brand": "Mobil",
+    "manufacturerCode": "123039",
+    "name": "óleo de motor 15W40 Mobil Super X1 semissintético 1L",
+    "referencePrice": 29.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0006",
+    "category": "Óleos e lubrificantes",
+    "subcategory": "óleo de motor",
+    "brand": "Mobil",
+    "manufacturerCode": "123037",
+    "name": "óleo de motor 20W50 Mobil Original mineral 1L",
+    "referencePrice": 22.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0007",
+    "category": "Óleos e lubrificantes",
+    "subcategory": "óleo de motor",
+    "brand": "Shell",
+    "manufacturerCode": "41120905",
+    "name": "óleo de motor 10W40 Shell Helix HX7 semissintético 1L",
+    "referencePrice": 49.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0008",
+    "category": "Óleos e lubrificantes",
+    "subcategory": "óleo de motor",
+    "brand": "Shell",
+    "manufacturerCode": "41060905",
+    "name": "óleo de motor 10W30 Shell Helix HX7 semissintético 1L",
+    "referencePrice": 49.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0009",
+    "category": "Óleos e lubrificantes",
+    "subcategory": "óleo para diesel",
+    "brand": "Shell",
+    "manufacturerCode": "44414907",
+    "name": "óleo diesel 15W40 Shell Rimula RT4 X CI-4 4L",
+    "referencePrice": 164.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0010",
+    "category": "Filtros",
+    "subcategory": "Filtro de óleo",
+    "brand": "Tecfil",
+    "manufacturerCode": "PSL55",
+    "name": "Filtro de óleo Tecfil PSL55",
+    "referencePrice": 23.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0011",
+    "category": "Filtros",
+    "subcategory": "Filtro de óleo",
+    "brand": "Tecfil",
+    "manufacturerCode": "PSL56",
+    "name": "Filtro de óleo Tecfil PSL56",
+    "referencePrice": 33.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0012",
+    "category": "Filtros",
+    "subcategory": "Filtro de óleo",
+    "brand": "Tecfil",
+    "manufacturerCode": "PSL560",
+    "name": "Filtro de óleo Tecfil PSL560",
+    "referencePrice": 28.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0013",
+    "category": "Filtros",
+    "subcategory": "Filtro de óleo",
+    "brand": "Tecfil",
+    "manufacturerCode": "PSL563",
+    "name": "Filtro de óleo Tecfil PSL563",
+    "referencePrice": 29.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0014",
+    "category": "Filtros",
+    "subcategory": "Filtro de óleo",
+    "brand": "Tecfil",
+    "manufacturerCode": "PSL916",
+    "name": "Filtro de óleo Tecfil PSL916",
+    "referencePrice": 36.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0015",
+    "category": "Filtros",
+    "subcategory": "Filtro de óleo",
+    "brand": "Tecfil",
+    "manufacturerCode": "PSL129",
+    "name": "Filtro de óleo Tecfil PSL129",
+    "referencePrice": 43.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0016",
+    "category": "Filtros",
+    "subcategory": "Filtro de óleo",
+    "brand": "Tecfil",
+    "manufacturerCode": "PSL615",
+    "name": "Filtro de óleo Tecfil PSL615",
+    "referencePrice": 42.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0017",
+    "category": "Filtros",
+    "subcategory": "Filtro de óleo",
+    "brand": "Tecfil",
+    "manufacturerCode": "PSL332",
+    "name": "Filtro de óleo Tecfil PSL332",
+    "referencePrice": 36.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0018",
+    "category": "Filtros",
+    "subcategory": "Filtro de óleo",
+    "brand": "Tecfil",
+    "manufacturerCode": "PSL620",
+    "name": "Filtro de óleo Tecfil PSL620",
+    "referencePrice": 38.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0019",
+    "category": "Filtros",
+    "subcategory": "Filtro de ar do motor",
+    "brand": "Tecfil",
+    "manufacturerCode": "ARL8830",
+    "name": "Filtro de ar do motor Tecfil ARL8830",
+    "referencePrice": 38.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0020",
+    "category": "Filtros",
+    "subcategory": "Filtro de ar do motor",
+    "brand": "Tecfil",
+    "manufacturerCode": "ARL2220",
+    "name": "Filtro de ar do motor Tecfil ARL2220",
+    "referencePrice": 60.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0021",
+    "category": "Filtros",
+    "subcategory": "Filtro de ar do motor",
+    "brand": "Tecfil",
+    "manufacturerCode": "ART6098",
+    "name": "Filtro de ar do motor Tecfil ART6098",
+    "referencePrice": 37.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0022",
+    "category": "Filtros",
+    "subcategory": "Filtro de ar do motor",
+    "brand": "Tecfil",
+    "manufacturerCode": "ART5051",
+    "name": "Filtro de ar do motor Tecfil ART5051",
+    "referencePrice": 55.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0023",
+    "category": "Filtros",
+    "subcategory": "Filtro de ar do motor",
+    "brand": "Tecfil",
+    "manufacturerCode": "ARL5053",
+    "name": "Filtro de ar do motor Tecfil ARL5053",
+    "referencePrice": 47.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0024",
+    "category": "Filtros",
+    "subcategory": "Filtro de ar do motor",
+    "brand": "Tecfil",
+    "manufacturerCode": "ARL1038",
+    "name": "Filtro de ar do motor Tecfil ARL1038",
+    "referencePrice": 61.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0025",
+    "category": "Filtros",
+    "subcategory": "Filtro de ar do motor",
+    "brand": "Tecfil",
+    "manufacturerCode": "ARL9608",
+    "name": "Filtro de ar do motor Tecfil ARL9608",
+    "referencePrice": 39.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0026",
+    "category": "Filtros",
+    "subcategory": "Filtro de ar do motor",
+    "brand": "Tecfil",
+    "manufacturerCode": "AR7705B",
+    "name": "Filtro de ar do motor Tecfil AR7705B",
+    "referencePrice": 56.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0027",
+    "category": "Filtros",
+    "subcategory": "Filtro de ar do motor",
+    "brand": "Tecfil",
+    "manufacturerCode": "ARL4157",
+    "name": "Filtro de ar do motor Tecfil ARL4157",
+    "referencePrice": 69.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0028",
+    "category": "Filtros",
+    "subcategory": "Filtro de cabine",
+    "brand": "Tecfil",
+    "manufacturerCode": "ACP003",
+    "name": "Filtro de cabine Tecfil ACP003",
+    "referencePrice": 23.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0029",
+    "category": "Filtros",
+    "subcategory": "Filtro de cabine",
+    "brand": "Tecfil",
+    "manufacturerCode": "ACP103",
+    "name": "Filtro de cabine Tecfil ACP103",
+    "referencePrice": 17.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0030",
+    "category": "Filtros",
+    "subcategory": "Filtro de cabine",
+    "brand": "Tecfil",
+    "manufacturerCode": "ACP885",
+    "name": "Filtro de cabine Tecfil ACP885",
+    "referencePrice": 35.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0031",
+    "category": "Filtros",
+    "subcategory": "Filtro de cabine",
+    "brand": "Tecfil",
+    "manufacturerCode": "ACP202",
+    "name": "Filtro de cabine Tecfil ACP202",
+    "referencePrice": 23.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0032",
+    "category": "Filtros",
+    "subcategory": "Filtro de cabine",
+    "brand": "Tecfil",
+    "manufacturerCode": "ACP008",
+    "name": "Filtro de cabine Tecfil ACP008",
+    "referencePrice": 33.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0033",
+    "category": "Filtros",
+    "subcategory": "Filtro de cabine",
+    "brand": "Tecfil",
+    "manufacturerCode": "ACP559",
+    "name": "Filtro de cabine Tecfil ACP559",
+    "referencePrice": 36.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0034",
+    "category": "Filtros",
+    "subcategory": "Filtro de cabine",
+    "brand": "Tecfil",
+    "manufacturerCode": "ACP205",
+    "name": "Filtro de cabine Tecfil ACP205",
+    "referencePrice": 15.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0035",
+    "category": "Filtros",
+    "subcategory": "Filtro de cabine",
+    "brand": "Tecfil",
+    "manufacturerCode": "ACP983",
+    "name": "Filtro de cabine Tecfil ACP983",
+    "referencePrice": 29.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0036",
+    "category": "Filtros",
+    "subcategory": "Filtro de combustível",
+    "brand": "Tecfil",
+    "manufacturerCode": "PSC999",
+    "name": "Filtro de combustível Tecfil PSC999",
+    "referencePrice": 83.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0037",
+    "category": "Filtros",
+    "subcategory": "Filtro de combustível",
+    "brand": "Tecfil",
+    "manufacturerCode": "PSC499B",
+    "name": "Filtro de combustível Tecfil PSC499B",
+    "referencePrice": 79.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0038",
+    "category": "Filtros",
+    "subcategory": "Filtro de combustível",
+    "brand": "Tecfil",
+    "manufacturerCode": "PSC722",
+    "name": "Filtro de combustível Tecfil PSC722",
+    "referencePrice": 29.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0039",
+    "category": "Filtros",
+    "subcategory": "Filtro de combustível",
+    "brand": "Tecfil",
+    "manufacturerCode": "PSC998",
+    "name": "Filtro de combustível Tecfil PSC998",
+    "referencePrice": 79.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0040",
+    "category": "Filtros",
+    "subcategory": "Filtro de combustível",
+    "brand": "Tecfil",
+    "manufacturerCode": "GI011",
+    "name": "Filtro de combustível Tecfil GI011",
+    "referencePrice": 51.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0041",
+    "category": "Filtros",
+    "subcategory": "Filtro de combustível",
+    "brand": "Tecfil",
+    "manufacturerCode": "PC949",
+    "name": "Filtro de combustível Tecfil PC949",
+    "referencePrice": 49.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0042",
+    "category": "Filtros",
+    "subcategory": "Filtro de combustível",
+    "brand": "Tecfil",
+    "manufacturerCode": "PEC3041",
+    "name": "Filtro de combustível Tecfil PEC3041",
+    "referencePrice": 201.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0043",
+    "category": "Freios",
+    "subcategory": "Pastilha de freio",
+    "brand": "Cobreq",
+    "manufacturerCode": "N1231",
+    "name": "Pastilha dianteira Cobreq N1231",
+    "referencePrice": 162.9,
+    "unit": "jogo"
+  },
+  {
+    "sku": "57BR-0044",
+    "category": "Freios",
+    "subcategory": "Pastilha de freio",
+    "brand": "Cobreq",
+    "manufacturerCode": "N547",
+    "name": "Pastilha dianteira Cobreq N547",
+    "referencePrice": 92.9,
+    "unit": "jogo"
+  },
+  {
+    "sku": "57BR-0045",
+    "category": "Freios",
+    "subcategory": "Pastilha de freio",
+    "brand": "Cobreq",
+    "manufacturerCode": "N1774",
+    "name": "Pastilha dianteira Cobreq N1774",
+    "referencePrice": 196.9,
+    "unit": "jogo"
+  },
+  {
+    "sku": "57BR-0046",
+    "category": "Freios",
+    "subcategory": "Pastilha de freio",
+    "brand": "Cobreq",
+    "manufacturerCode": "N190",
+    "name": "Pastilha dianteira Cobreq N190",
+    "referencePrice": 182.19,
+    "unit": "jogo"
+  },
+  {
+    "sku": "57BR-0047",
+    "category": "Freios",
+    "subcategory": "Pastilha de freio",
+    "brand": "Cobreq",
+    "manufacturerCode": "N1426",
+    "name": "Pastilha dianteira Cobreq N1426",
+    "referencePrice": 130.71,
+    "unit": "jogo"
+  },
+  {
+    "sku": "57BR-0048",
+    "category": "Freios",
+    "subcategory": "Pastilha de freio",
+    "brand": "Cobreq",
+    "manufacturerCode": "N367",
+    "name": "Pastilha dianteira Cobreq N367",
+    "referencePrice": 109.9,
+    "unit": "jogo"
+  },
+  {
+    "sku": "57BR-0049",
+    "category": "Freios",
+    "subcategory": "Pastilha de freio",
+    "brand": "Cobreq",
+    "manufacturerCode": "N1166",
+    "name": "Pastilha dianteira Cobreq N1166",
+    "referencePrice": 99.9,
+    "unit": "jogo"
+  },
+  {
+    "sku": "57BR-0050",
+    "category": "Freios",
+    "subcategory": "Pastilha de freio",
+    "brand": "Cobreq",
+    "manufacturerCode": "N279C",
+    "name": "Pastilha dianteira Cobreq N279C",
+    "referencePrice": 403.74,
+    "unit": "jogo"
+  },
+  {
+    "sku": "57BR-0051",
+    "category": "Freios",
+    "subcategory": "Pastilha de freio",
+    "brand": "Cobreq",
+    "manufacturerCode": "N506",
+    "name": "Pastilha dianteira com sensor Cobreq N506",
+    "referencePrice": 84.94,
+    "unit": "jogo"
+  },
+  {
+    "sku": "57BR-0052",
+    "category": "Freios",
+    "subcategory": "Pastilha de freio",
+    "brand": "Cobreq",
+    "manufacturerCode": "N503",
+    "name": "Pastilha dianteira sistema ATE Cobreq N503",
+    "referencePrice": 56.9,
+    "unit": "jogo"
+  },
+  {
+    "sku": "57BR-0053",
+    "category": "Freios",
+    "subcategory": "Pastilha de freio",
+    "brand": "Cobreq",
+    "manufacturerCode": "N1168",
+    "name": "Pastilha dianteira Cobreq N1168",
+    "referencePrice": 123.49,
+    "unit": "jogo"
+  },
+  {
+    "sku": "57BR-0054",
+    "category": "Freios",
+    "subcategory": "Pastilha de freio",
+    "brand": "Cobreq",
+    "manufacturerCode": "N1231C",
+    "name": "Pastilha dianteira Cobreq N1231C",
+    "referencePrice": 214.9,
+    "unit": "jogo"
+  },
+  {
+    "sku": "57BR-0055",
+    "category": "Freios",
+    "subcategory": "Disco de freio",
+    "brand": "Fremax",
+    "manufacturerCode": "BD4750",
+    "name": "Disco de freio dianteiro ventilado Fremax BD4750",
+    "referencePrice": 146.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0056",
+    "category": "Freios",
+    "subcategory": "Disco de freio",
+    "brand": "Fremax",
+    "manufacturerCode": "BD4752",
+    "name": "Disco de freio dianteiro ventilado Fremax BD4752",
+    "referencePrice": 189.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0057",
+    "category": "Freios",
+    "subcategory": "Disco de freio",
+    "brand": "Fremax",
+    "manufacturerCode": "BD5602",
+    "name": "Disco de freio dianteiro ventilado Fremax BD5602",
+    "referencePrice": 104.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0058",
+    "category": "Freios",
+    "subcategory": "Disco de freio",
+    "brand": "Fremax",
+    "manufacturerCode": "BD0178",
+    "name": "Disco de freio dianteiro ventilado Fremax BD0178",
+    "referencePrice": 82.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0059",
+    "category": "Freios",
+    "subcategory": "Disco de freio",
+    "brand": "Fremax",
+    "manufacturerCode": "BD3550",
+    "name": "Disco de freio dianteiro ventilado com ABS Fremax BD3550",
+    "referencePrice": 159.57,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0060",
+    "category": "Freios",
+    "subcategory": "Disco de freio",
+    "brand": "Fremax",
+    "manufacturerCode": "BD3545",
+    "name": "Disco de freio dianteiro ventilado sem ABS Fremax BD3545",
+    "referencePrice": 89.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0061",
+    "category": "Freios",
+    "subcategory": "Disco de freio",
+    "brand": "Fremax",
+    "manufacturerCode": "BD5167",
+    "name": "Disco de freio traseiro sólido Fremax BD5167",
+    "referencePrice": 169.75,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0062",
+    "category": "Freios",
+    "subcategory": "Disco de freio",
+    "brand": "Fremax",
+    "manufacturerCode": "BD5649",
+    "name": "Disco de freio traseiro sólido 5 furos Fremax BD5649",
+    "referencePrice": 99.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0063",
+    "category": "Ignição",
+    "subcategory": "Vela de ignição",
+    "brand": "NGK",
+    "manufacturerCode": "BKR6E",
+    "name": "Vela de ignição NGK BKR6E",
+    "referencePrice": 17.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0064",
+    "category": "Ignição",
+    "subcategory": "Vela de ignição",
+    "brand": "NGK",
+    "manufacturerCode": "BKR7E",
+    "name": "Vela de ignição NGK BKR7E",
+    "referencePrice": 24.81,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0065",
+    "category": "Ignição",
+    "subcategory": "Vela de ignição",
+    "brand": "NGK",
+    "manufacturerCode": "TR6B10",
+    "name": "Vela de ignição NGK TR6B10",
+    "referencePrice": 22.6,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0066",
+    "category": "Ignição",
+    "subcategory": "Vela de ignição",
+    "brand": "NGK",
+    "manufacturerCode": "BKR5EIX11",
+    "name": "Vela de ignição NGK BKR5EIX11",
+    "referencePrice": 94.54,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0067",
+    "category": "Ignição",
+    "subcategory": "Vela de ignição",
+    "brand": "NGK",
+    "manufacturerCode": "BKR5EIX",
+    "name": "Vela de ignição NGK BKR5EIX",
+    "referencePrice": 89.71,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0068",
+    "category": "Ignição",
+    "subcategory": "Vela de ignição",
+    "brand": "NGK",
+    "manufacturerCode": "BKR6EIX11",
+    "name": "Vela de ignição NGK BKR6EIX11",
+    "referencePrice": 82.66,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0069",
+    "category": "Ignição",
+    "subcategory": "Vela de ignição",
+    "brand": "NGK",
+    "manufacturerCode": "BKR7EIX",
+    "name": "Vela de ignição NGK BKR7EIX",
+    "referencePrice": 89.08,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0070",
+    "category": "Ignição",
+    "subcategory": "Vela de ignição",
+    "brand": "NGK",
+    "manufacturerCode": "BKR5E11",
+    "name": "Vela de ignição NGK BKR5E11",
+    "referencePrice": 28.53,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0071",
+    "category": "Correias e sincronismo",
+    "subcategory": "Correia ou kit",
+    "brand": "Gates",
+    "manufacturerCode": "KS212",
+    "name": "Kit de correia dentada Gates KS212",
+    "referencePrice": 119.9,
+    "unit": "kit"
+  },
+  {
+    "sku": "57BR-0072",
+    "category": "Correias e sincronismo",
+    "subcategory": "Correia ou kit",
+    "brand": "Gates",
+    "manufacturerCode": "KS704",
+    "name": "Kit de correia dentada Gates KS704",
+    "referencePrice": 329.9,
+    "unit": "kit"
+  },
+  {
+    "sku": "57BR-0073",
+    "category": "Correias e sincronismo",
+    "subcategory": "Correia ou kit",
+    "brand": "Gates",
+    "manufacturerCode": "KS214",
+    "name": "Kit de correia dentada Gates KS214",
+    "referencePrice": 125.44,
+    "unit": "kit"
+  },
+  {
+    "sku": "57BR-0074",
+    "category": "Correias e sincronismo",
+    "subcategory": "Correia ou kit",
+    "brand": "Dayco",
+    "manufacturerCode": "111SP170",
+    "name": "Correia dentada Dayco 111 dentes 111SP170",
+    "referencePrice": 34.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0075",
+    "category": "Correias e sincronismo",
+    "subcategory": "Correia ou kit",
+    "brand": "Dayco",
+    "manufacturerCode": "158SHPN254H",
+    "name": "Correia dentada Dayco 158 dentes 158SHPN254H",
+    "referencePrice": 104.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0076",
+    "category": "Correias e sincronismo",
+    "subcategory": "Correia ou kit",
+    "brand": "Dayco",
+    "manufacturerCode": "KTB201",
+    "name": "Kit de correia dentada Dayco KTB201 121 dentes",
+    "referencePrice": 102.9,
+    "unit": "kit"
+  },
+  {
+    "sku": "57BR-0077",
+    "category": "Correias e sincronismo",
+    "subcategory": "Correia ou kit",
+    "brand": "Dayco",
+    "manufacturerCode": "KTB2213",
+    "name": "Kit de correia dentada Dayco KTB2213 111 dentes",
+    "referencePrice": 139.9,
+    "unit": "kit"
+  },
+  {
+    "sku": "57BR-0078",
+    "category": "Suspensão",
+    "subcategory": "Amortecedor ou kit",
+    "brand": "Cofap",
+    "manufacturerCode": "L12477",
+    "name": "Amortecedor dianteiro Cofap L12477",
+    "referencePrice": 204.45,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0079",
+    "category": "Suspensão",
+    "subcategory": "Amortecedor ou kit",
+    "brand": "Cofap",
+    "manufacturerCode": "L12142",
+    "name": "Amortecedor dianteiro Cofap L12142",
+    "referencePrice": 248.96,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0080",
+    "category": "Suspensão",
+    "subcategory": "Amortecedor ou kit",
+    "brand": "Cofap",
+    "manufacturerCode": "GP30112",
+    "name": "Amortecedor dianteiro Cofap GP30112",
+    "referencePrice": 209.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0081",
+    "category": "Suspensão",
+    "subcategory": "Amortecedor ou kit",
+    "brand": "Cofap",
+    "manufacturerCode": "GP30130",
+    "name": "Amortecedor dianteiro Cofap GP30130",
+    "referencePrice": 438.7,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0082",
+    "category": "Suspensão",
+    "subcategory": "Amortecedor ou kit",
+    "brand": "Cofap",
+    "manufacturerCode": "GP32143",
+    "name": "Amortecedor dianteiro Cofap GP32143",
+    "referencePrice": 349.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0083",
+    "category": "Suspensão",
+    "subcategory": "Amortecedor ou kit",
+    "brand": "Cofap",
+    "manufacturerCode": "SB27003",
+    "name": "Amortecedor dianteiro Cofap SB27003",
+    "referencePrice": 121.15,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0084",
+    "category": "Suspensão",
+    "subcategory": "Amortecedor ou kit",
+    "brand": "Cofap",
+    "manufacturerCode": "KSC03102S",
+    "name": "Kit parcial amortecedor dianteiro Cofap KSC03102S",
+    "referencePrice": 26.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0085",
+    "category": "Direção",
+    "subcategory": "Terminal de direção",
+    "brand": "Nakata",
+    "manufacturerCode": "N1027",
+    "name": "Terminal de direção Nakata N1027",
+    "referencePrice": 44.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0086",
+    "category": "Direção",
+    "subcategory": "Terminal de direção",
+    "brand": "Nakata",
+    "manufacturerCode": "N3022",
+    "name": "Terminal de direção Nakata N3022",
+    "referencePrice": 65.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0087",
+    "category": "Limpadores",
+    "subcategory": "Palheta limpa-vidro",
+    "brand": "Bosch",
+    "manufacturerCode": "AP19M",
+    "name": "Palheta dianteira Bosch Aerotwin Plus 19 pol. AP19M",
+    "referencePrice": 103.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0088",
+    "category": "Limpadores",
+    "subcategory": "Palheta limpa-vidro",
+    "brand": "Bosch",
+    "manufacturerCode": "AP21M",
+    "name": "Palheta dianteira Bosch Aerotwin Plus 21 pol. AP21M",
+    "referencePrice": 123.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0089",
+    "category": "Limpadores",
+    "subcategory": "Palheta limpa-vidro",
+    "brand": "Bosch",
+    "manufacturerCode": "H312",
+    "name": "Palheta traseira Bosch H312 12 pol.",
+    "referencePrice": 60.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0090",
+    "category": "Limpadores",
+    "subcategory": "Palheta limpa-vidro",
+    "brand": "Bosch",
+    "manufacturerCode": "S14",
+    "name": "Palheta traseira Bosch S14 13,5 pol.",
+    "referencePrice": 39.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0091",
+    "category": "Baterias",
+    "subcategory": "Bateria de partida",
+    "brand": "Moura",
+    "manufacturerCode": "M60AD",
+    "name": "Bateria automotiva Moura 60Ah polo direito M60AD",
+    "referencePrice": 559.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0092",
+    "category": "Baterias",
+    "subcategory": "Bateria de partida",
+    "brand": "Moura",
+    "manufacturerCode": "M60GD",
+    "name": "Bateria automotiva Moura 60Ah polo direito M60GD",
+    "referencePrice": 569.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0093",
+    "category": "Baterias",
+    "subcategory": "Bateria de partida",
+    "brand": "Moura",
+    "manufacturerCode": "M50ED",
+    "name": "Bateria automotiva Moura 50Ah polo direito M50ED",
+    "referencePrice": 564.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0094",
+    "category": "Baterias",
+    "subcategory": "Bateria de partida",
+    "brand": "Moura",
+    "manufacturerCode": "M40FD",
+    "name": "Bateria automotiva Moura 40Ah polo direito M40FD",
+    "referencePrice": 539.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0095",
+    "category": "Pneus",
+    "subcategory": "Pneu passeio",
+    "brand": "Pirelli",
+    "manufacturerCode": "2696900",
+    "name": "Pneu 175/65 R14 82H Pirelli P400 Evo",
+    "referencePrice": 319.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0096",
+    "category": "Pneus",
+    "subcategory": "Pneu passeio",
+    "brand": "Dunlop",
+    "manufacturerCode": "414921",
+    "name": "Pneu 175/65 R14 82T Dunlop Enasave EC300+",
+    "referencePrice": 399.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0097",
+    "category": "Pneus",
+    "subcategory": "Pneu passeio",
+    "brand": "Sumitomo",
+    "manufacturerCode": "202954",
+    "name": "Pneu 185/65 R15 88H Sumitomo BC20",
+    "referencePrice": 329.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0098",
+    "category": "Pneus",
+    "subcategory": "Pneu passeio",
+    "brand": "Dunlop",
+    "manufacturerCode": "202921",
+    "name": "Pneu 185/65 R15 88H Dunlop SP Sport FM800",
+    "referencePrice": 429.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0099",
+    "category": "Pneus",
+    "subcategory": "Pneu passeio",
+    "brand": "Continental",
+    "manufacturerCode": "15501620000",
+    "name": "Pneu 195/55 R16 87H Continental PowerContact 2",
+    "referencePrice": 599.9,
+    "unit": "unidade"
+  },
+  {
+    "sku": "57BR-0100",
+    "category": "Pneus",
+    "subcategory": "Pneu passeio",
+    "brand": "Continental",
+    "manufacturerCode": "15508610000",
+    "name": "Pneu 205/55 R16 91V Continental PowerContact 2",
+    "referencePrice": 459.9,
+    "unit": "unidade"
+  }
+]
