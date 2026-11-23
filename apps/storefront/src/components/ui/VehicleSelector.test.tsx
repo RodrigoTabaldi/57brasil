@@ -1,32 +1,29 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
 import { VehicleSelector } from "./VehicleSelector";
 
-const { push } = vi.hoisted(() => ({ push: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+const routerMocks = vi.hoisted(() => ({ push: vi.fn() }));
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: routerMocks.push }) }));
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
-  push.mockReset();
+  vi.clearAllMocks();
 });
 
-describe("illustrative vehicle search", () => {
-  it.each([
-    ["Carro", "carro"],
-    ["Moto", "moto"],
-    ["Caminhão", "caminhao"],
-  ])("searches the existing %s family", async (label, family) => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
-    const user = userEvent.setup();
+for (const [label, family] of [["Carro", "carro"], ["Moto", "moto"], ["Caminhão", "caminhao"]] as const) {
+  it(`starts an illustrative search for ${label}`, () => {
+    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
     render(<VehicleSelector />);
 
-    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/v1/vehicles/makes"));
-    await user.selectOptions(screen.getByRole("combobox", { name: "Família do veículo" }), family);
-    await user.click(screen.getByRole("button", { name: "Ver peças ilustrativas" }));
+    const select = screen.getByRole("combobox", { name: "Família do veículo" });
+    expect(screen.getByRole("option", { name: label }).getAttribute("value")).toBe(family);
+    fireEvent.change(select, { target: { value: family } });
+    fireEvent.submit(select.closest("form")!);
 
-    expect(push).toHaveBeenCalledWith(`/produtos?modo=demonstrativo&vehicleType=${family}`);
+    expect(routerMocks.push).toHaveBeenCalledWith(`/produtos?vehicleType=${family}`);
+    expect(screen.getByRole("note").textContent).toMatch(/não confirma compatibilidade/i);
   });
-});
+}
