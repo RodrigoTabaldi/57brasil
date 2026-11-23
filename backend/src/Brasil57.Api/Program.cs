@@ -80,7 +80,7 @@ if (args.Contains("--migrate", StringComparer.Ordinal))
 app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.Use(async (context, next) => {
-    if (context.Request.Path.StartsWithSegments("/api/v1/account") || context.Request.Path.StartsWithSegments("/api/v1/admin") || context.Request.Path.StartsWithSegments("/api/v1/cart"))
+    if (context.Request.Path.StartsWithSegments("/api/v1/account") || context.Request.Path.StartsWithSegments("/api/v1/admin") || context.Request.Path.StartsWithSegments("/api/v1/cart") || context.Request.Path.StartsWithSegments("/api/v1/supplier-requests"))
         context.Response.Headers.CacheControl = "no-store";
     await next(context);
 });
@@ -95,6 +95,7 @@ app.MapGet("/health/ready", async (StoreDbContext db, CancellationToken ct) => {
 });
 app.MapAdmin();
 app.MapCustomers(app.Configuration);
+app.MapSupplierRequests();
 var api = app.MapGroup("/api/v1");
 if (webhookEnabled)
 {

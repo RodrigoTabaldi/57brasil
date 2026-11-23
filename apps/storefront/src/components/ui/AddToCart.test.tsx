@@ -2,9 +2,20 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { AddToCart } from "./AddToCart";
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
-
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+
+it("opens the address step for a published product without starting payment or changing the cart", () => {
+  const fetchMock = vi.fn(); vi.stubGlobal("fetch", fetchMock);
+  render(<AddToCart productId="published-1" available={4} price={20} />);
+  fireEvent.change(screen.getByLabelText("Quantidade"), { target: { value: "3" } });
+  expect(screen.getByRole("link", { name: "COMPRAR" }).getAttribute("href")).toBe("/pedidos/novo?produto=published-1&quantidade=3");
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+it("allows a supplier request even when listed stock is zero", () => {
+  render(<AddToCart productId="out-1" available={0} />);
+  expect(screen.getByRole("link", { name: "COMPRAR" }).getAttribute("href")).toBe("/pedidos/novo?produto=out-1&quantidade=1");
+});
 
 it("opens authentication for a visitor and adds the pending product once after registration", async () => {
   let authenticated = false;
