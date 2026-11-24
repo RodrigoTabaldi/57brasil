@@ -19,7 +19,7 @@ mkdir -p /root/brasil57/backups
 backup="/root/brasil57/backups/pre-deploy-$(date -u +%Y%m%dT%H%M%SZ).sql.gz"
 "${compose[@]}" exec -T db pg_dump -U brasil57 -d brasil57 | gzip > "$backup"
 test -s "$backup"
-"${compose[@]}" run --rm --no-build migrate
+"${compose[@]}" run --rm migrate
 "${compose[@]}" up -d --no-build
 for attempt in {1..30}; do
   if curl -fsS --max-time 5 https://57brasil.com.br/health/ready >/dev/null && curl -fsS --max-time 5 https://57brasil.com.br/ >/dev/null; then
