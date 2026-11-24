@@ -10,3 +10,5 @@ backups/
 **/.keys
 /vps_access_key
 /vps_access_key.pub
+/vps_ci_key
+/vps_ci_key.pub

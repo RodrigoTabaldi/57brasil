@@ -1,5 +1,11 @@
 # Implantação em VPS única
 
+## CI e deploy automático
+
+O workflow `Verify` testa backend e frontend em pushes e pull requests. Após os dois jobs passarem em um push para `main`, o job de deploy conecta à VPS usando uma chave SSH restrita e publica apenas o commit que ainda estiver na ponta de `main`. O script da VPS constrói as imagens, cria um dump local do PostgreSQL, executa migrations e verifica a disponibilidade HTTPS. Consulte os logs em GitHub Actions se uma etapa falhar. O deploy pode interromper o serviço enquanto os containers são recriados; falhas após migrations exigem análise e recuperação manual do banco, pois não há rollback automático. O dump local não protege contra perda da VPS.
+
+O script instalado em `/root/deploy-vps-ci.sh` é separado do checkout por segurança. Mudanças nesse script exigem atualização controlada dessa cópia na VPS; não são aplicadas pelo próprio deploy.
+
 Use uma VPS Linux com Docker Engine e plugin Compose, domínio apontando para o IP público e portas TCP 80/443 e UDP 443 liberadas. O Compose de produção reserva até cerca de 6 GiB de memória entre os serviços; dimensione a VPS com folga para o sistema, builds e picos. Somente Caddy deve ter portas públicas. Não publique PostgreSQL, Redis ou RabbitMQ.
 
 Na VPS, clone o repositório e prepare a configuração:

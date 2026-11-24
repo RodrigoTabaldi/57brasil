@@ -56,6 +56,7 @@ jobs:
           dotnet-version: 10.0.x
       - run: docker exec "${{ job.services.redis.id }}" redis-cli CONFIG SET requirepass verification-only
       - run: docker compose --env-file .env.production.example -f compose.production.yaml config --quiet
+      - run: docker compose --env-file .env.production.example -f compose.vps.yaml config --quiet
       - run: dotnet build backend/src/Brasil57.Api/Brasil57.Api.csproj --configuration Release
       - run: dotnet test backend/tests/Brasil57.UnitTests/Brasil57.UnitTests.csproj --configuration Release
       - run: dotnet test backend/tests/Brasil57.IntegrationTests/Brasil57.IntegrationTests.csproj --configuration Release
@@ -76,3 +77,25 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [backend, storefront]
+    runs-on: ubuntu-latest
+    concurrency:
+      group: production-vps
+      cancel-in-progress: false
+    steps:
+      - name: Deploy verified commit
+        env:
+          DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+          DEPLOY_HOST_KEY: ${{ secrets.VPS_HOST_KEY }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          set -eu
+          test -n "$DEPLOY_KEY" && test -n "$DEPLOY_HOST_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes root@89.117.145.23 "$DEPLOY_SHA"
