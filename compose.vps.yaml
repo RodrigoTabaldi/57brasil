@@ -33,7 +33,7 @@ services:
   storefront:
     build: ./apps/storefront
     environment:
-      API_INTERNAL_URL: http://proxy
+      API_INTERNAL_URL: http://api:8080
     depends_on:
       - api
     restart: unless-stopped
